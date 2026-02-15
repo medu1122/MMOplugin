@@ -80,10 +80,35 @@ public class RoleInfoGUI {
             List<String> lore = new ArrayList<>();
             lore.add("§7Click để xem tất cả skills");
             lore.add("§7của role " + currentRole.getDisplayName());
+            int skillCount = plugin.getSkillManager().getSkills(currentRole).size();
+            lore.add("§7Số skills: §e" + skillCount);
             skillsMeta.setLore(lore);
             skillsButton.setItemMeta(skillsMeta);
         }
         inv.setItem(29, skillsButton);
+
+        // Chọn Skill button
+        ItemStack selectSkillButton = new ItemStack(Material.BLAZE_ROD);
+        ItemMeta selectSkillMeta = selectSkillButton.getItemMeta();
+        if (selectSkillMeta != null) {
+            selectSkillMeta.setDisplayName("§6Chọn Skill");
+            List<String> lore = new ArrayList<>();
+            String selectedSkillId = plugin.getSkillManager().getSelectedSkillId(player);
+            if (selectedSkillId != null) {
+                var selectedSkill = plugin.getSkillManager().getSkill(selectedSkillId);
+                if (selectedSkill != null) {
+                    lore.add("§7Skill đang dùng: §e" + selectedSkill.getName());
+                }
+            } else {
+                lore.add("§7Skill đang dùng: §cChưa chọn");
+            }
+            lore.add("");
+            lore.add("§eClick để chọn skill!");
+            lore.add("§7Cooldown: §e30 phút");
+            selectSkillMeta.setLore(lore);
+            selectSkillButton.setItemMeta(selectSkillMeta);
+        }
+        inv.setItem(30, selectSkillButton);
 
         // Titles button
         ItemStack titlesButton = new ItemStack(Material.NAME_TAG);
@@ -144,7 +169,7 @@ public class RoleInfoGUI {
         // Fill empty slots
         for (int i = 0; i < 54; i++) {
             if (inv.getItem(i) == null) {
-                if (i != 22 && i != 29 && i != 31 && i != 33 && i != 49) {
+                if (i != 22 && i != 29 && i != 30 && i != 31 && i != 33 && i != 49) {
                     inv.setItem(i, glass);
                 }
             }

@@ -77,9 +77,23 @@ public class DatabaseManager {
                     healer_level INTEGER DEFAULT 1,
                     healer_exp INTEGER DEFAULT 0,
                     skill_points INTEGER DEFAULT 0,
-                    last_role_change BIGINT DEFAULT 0
+                    last_role_change BIGINT DEFAULT 0,
+                    selected_skill_id TEXT,
+                    last_skill_change BIGINT DEFAULT 0
                 )
             """);
+            
+            // Migration: Thêm columns nếu chưa có (cho database cũ)
+            try {
+                stmt.execute("ALTER TABLE role_players ADD COLUMN selected_skill_id TEXT");
+            } catch (SQLException e) {
+                // Column đã tồn tại, bỏ qua
+            }
+            try {
+                stmt.execute("ALTER TABLE role_players ADD COLUMN last_skill_change BIGINT DEFAULT 0");
+            } catch (SQLException e) {
+                // Column đã tồn tại, bỏ qua
+            }
 
             // Table: role_skills - Lưu skill level của từng player cho từng role
             stmt.execute("""

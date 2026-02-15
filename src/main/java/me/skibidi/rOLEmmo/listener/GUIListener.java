@@ -47,7 +47,9 @@ public class GUIListener implements Listener {
         // Cancel tất cả clicks trong GUI
         if (title.startsWith("§6Role Info") || 
             title.startsWith("§6Danh Hiệu") ||
-            title.startsWith("§6Skills")) {
+            title.startsWith("§6Skills") ||
+            title.startsWith("§6Upgrade:") ||
+            title.startsWith("§6Chọn Skill")) {
             event.setCancelled(true);
 
             if (clicked == null || clicked.getType() == Material.AIR) return;
@@ -59,6 +61,18 @@ public class GUIListener implements Listener {
             // Title GUI
             else if (title.startsWith("§6Danh Hiệu")) {
                 handleTitleClick(player, event.getSlot(), clicked, title);
+            }
+            // Skill List GUI
+            else if (title.startsWith("§6Skills") && !title.contains("Chọn")) {
+                handleSkillListClick(player, event.getSlot(), clicked, title);
+            }
+            // Skill Upgrade GUI
+            else if (title.startsWith("§6Upgrade:")) {
+                handleSkillUpgradeClick(player, event.getSlot(), clicked, title);
+            }
+            // Skill Selection GUI
+            else if (title.startsWith("§6Chọn Skill")) {
+                handleSkillSelectionClick(player, event.getSlot(), clicked, title);
             }
         }
     }
@@ -75,8 +89,13 @@ public class GUIListener implements Listener {
 
         // Skills button
         if (slot == 29 && clicked.getType() == Material.ENCHANTED_BOOK) {
-            // TODO: Mở Skill List GUI (sẽ implement sau)
-            player.sendMessage("§eTính năng Skills sẽ được thêm sau!");
+            me.skibidi.rolemmo.gui.SkillListGUI.open(player, plugin);
+            return;
+        }
+
+        // Chọn Skill button
+        if (slot == 30 && clicked.getType() == Material.BLAZE_ROD) {
+            me.skibidi.rolemmo.gui.SkillSelectionGUI.open(player, plugin);
             return;
         }
 
@@ -169,6 +188,167 @@ public class GUIListener implements Listener {
                         titleManager.setActiveTitle(player, clickedTitle);
                         // Refresh GUI
                         TitleGUI.open(player, plugin);
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    /**
+     * Xử lý click trong Skill List GUI
+     */
+    private void handleSkillListClick(Player player, int slot, ItemStack clicked, String inventoryTitle) {
+        // Back button
+        if (slot == 48 && clicked.getType() == Material.ARROW) {
+            RoleInfoGUI.open(player, plugin);
+            return;
+        }
+
+        // Close button
+        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+            player.closeInventory();
+            return;
+        }
+
+        // Skill items
+        int[] skillSlots = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34
+        };
+
+        for (int skillSlot : skillSlots) {
+            if (slot == skillSlot) {
+                // Tìm skill tương ứng
+                Role currentRole = roleManager.getPlayerRole(player);
+                if (currentRole == null) {
+                    return;
+                }
+
+                var skills = plugin.getSkillManager().getSkills(currentRole);
+                int index = -1;
+                for (int i = 0; i < skillSlots.length; i++) {
+                    if (skillSlots[i] == slot) {
+                        index = i;
+                        break;
+                    }
+                }
+
+                if (index >= 0 && index < skills.size()) {
+                    var skill = skills.get(index);
+                    // Mở Skill Upgrade GUI
+                    me.skibidi.rolemmo.gui.SkillUpgradeGUI.open(player, plugin, skill);
+                }
+                return;
+            }
+        }
+    }
+
+    /**
+     * Xử lý click trong Skill Upgrade GUI
+     */
+    private void handleSkillUpgradeClick(Player player, int slot, ItemStack clicked, String inventoryTitle) {
+        // Back button
+        if (slot == 48 && clicked.getType() == Material.ARROW) {
+            me.skibidi.rolemmo.gui.SkillListGUI.open(player, plugin);
+            return;
+        }
+
+        // Close button
+        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+            player.closeInventory();
+            return;
+        }
+
+        // Upgrade button
+        if (slot == 31 && (clicked.getType() == Material.EMERALD || clicked.getType() == Material.REDSTONE)) {
+            // Extract skill ID từ title
+            String skillId = extractSkillIdFromTitle(inventoryTitle);
+            if (skillId != null) {
+                var skillManager = plugin.getSkillManager();
+                if (skillManager != null) {
+                    skillManager.upgradeSkill(player, skillId);
+                    // Refresh GUI
+                    var skill = skillManager.getSkill(skillId);
+                    if (skill != null) {
+                        me.skibidi.rolemmo.gui.SkillUpgradeGUI.open(player, plugin, skill);
+                    }
+                }
+            }
+            return;
+        }
+    }
+
+    /**
+     * Extract skill ID từ inventory title
+     */
+    private String extractSkillIdFromTitle(String title) {
+        // Title format: "§6Upgrade: SkillName"
+        if (title.startsWith("§6Upgrade: ")) {
+            String skillName = title.substring(12); // Remove "§6Upgrade: "
+            // Tìm skill theo name
+            var skillManager = plugin.getSkillManager();
+            if (skillManager != null) {
+                Role currentRole = roleManager.getPlayerRole(plugin.getServer().getPlayer(player.getName()));
+                if (currentRole != null) {
+                    for (var skill : skillManager.getSkills(currentRole)) {
+                        if (skill.getName().equals(skillName)) {
+                            return skill.getId();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Xử lý click trong Skill Selection GUI
+     */
+    private void handleSkillSelectionClick(Player player, int slot, ItemStack clicked, String inventoryTitle) {
+        // Back button
+        if (slot == 48 && clicked.getType() == Material.ARROW) {
+            RoleInfoGUI.open(player, plugin);
+            return;
+        }
+
+        // Close button
+        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+            player.closeInventory();
+            return;
+        }
+
+        // Skill items
+        int[] skillSlots = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34
+        };
+
+        for (int skillSlot : skillSlots) {
+            if (slot == skillSlot) {
+                // Tìm skill tương ứng
+                Role currentRole = roleManager.getPlayerRole(player);
+                if (currentRole == null) {
+                    return;
+                }
+
+                var skills = plugin.getSkillManager().getSkills(currentRole);
+                int index = -1;
+                for (int i = 0; i < skillSlots.length; i++) {
+                    if (skillSlots[i] == slot) {
+                        index = i;
+                        break;
+                    }
+                }
+
+                if (index >= 0 && index < skills.size()) {
+                    var skill = skills.get(index);
+                    // Chọn skill
+                    if (plugin.getSkillManager().selectSkill(player, skill.getId())) {
+                        // Refresh GUI
+                        me.skibidi.rolemmo.gui.SkillSelectionGUI.open(player, plugin);
                     }
                 }
                 return;

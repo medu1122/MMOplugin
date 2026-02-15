@@ -38,6 +38,20 @@ public class PlayerRoleRepository {
                         }
                     }
 
+                    String selectedSkillId = null;
+                    try {
+                        selectedSkillId = rs.getString("selected_skill_id");
+                    } catch (SQLException e) {
+                        // Column có thể chưa tồn tại trong database cũ
+                    }
+                    
+                    long lastSkillChange = 0;
+                    try {
+                        lastSkillChange = rs.getLong("last_skill_change");
+                    } catch (SQLException e) {
+                        // Column có thể chưa tồn tại trong database cũ
+                    }
+                    
                     return new PlayerRoleData(
                         UUID.fromString(rs.getString("uuid")),
                         role,
@@ -48,7 +62,9 @@ public class PlayerRoleRepository {
                         Math.max(1, rs.getInt("healer_level")),
                         Math.max(0, rs.getInt("healer_exp")),
                         Math.max(0, rs.getInt("skill_points")),
-                        Math.max(0, rs.getLong("last_role_change"))
+                        Math.max(0, rs.getLong("last_role_change")),
+                        selectedSkillId,
+                        Math.max(0, lastSkillChange)
                     );
                 }
             }
@@ -75,8 +91,8 @@ public class PlayerRoleRepository {
 
         String sql = """
             INSERT INTO role_players (uuid, current_role, tanker_level, tanker_exp, dps_level, dps_exp, 
-                                     healer_level, healer_exp, skill_points, last_role_change)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     healer_level, healer_exp, skill_points, last_role_change, selected_skill_id, last_skill_change)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(uuid) DO UPDATE SET
                 current_role = excluded.current_role,
                 tanker_level = excluded.tanker_level,
@@ -86,7 +102,9 @@ public class PlayerRoleRepository {
                 healer_level = excluded.healer_level,
                 healer_exp = excluded.healer_exp,
                 skill_points = excluded.skill_points,
-                last_role_change = excluded.last_role_change
+                last_role_change = excluded.last_role_change,
+                selected_skill_id = excluded.selected_skill_id,
+                last_skill_change = excluded.last_skill_change
         """;
         
         try (PreparedStatement stmt = databaseManager.getConnection().prepareStatement(sql)) {
@@ -156,10 +174,12 @@ public class PlayerRoleRepository {
         private int healerExp;
         private int skillPoints;
         private long lastRoleChange;
+        private String selectedSkillId;
+        private long lastSkillChange;
 
         public PlayerRoleData(UUID uuid, Role currentRole, int tankerLevel, int tankerExp,
                              int dpsLevel, int dpsExp, int healerLevel, int healerExp,
-                             int skillPoints, long lastRoleChange) {
+                             int skillPoints, long lastRoleChange, String selectedSkillId, long lastSkillChange) {
             this.uuid = uuid;
             this.currentRole = currentRole;
             this.tankerLevel = tankerLevel;
@@ -170,6 +190,8 @@ public class PlayerRoleRepository {
             this.healerExp = healerExp;
             this.skillPoints = skillPoints;
             this.lastRoleChange = lastRoleChange;
+            this.selectedSkillId = selectedSkillId;
+            this.lastSkillChange = lastSkillChange;
         }
 
         // Getters
@@ -183,6 +205,8 @@ public class PlayerRoleRepository {
         public int getHealerExp() { return healerExp; }
         public int getSkillPoints() { return skillPoints; }
         public long getLastRoleChange() { return lastRoleChange; }
+        public String getSelectedSkillId() { return selectedSkillId; }
+        public long getLastSkillChange() { return lastSkillChange; }
 
         // Setters
         public void setCurrentRole(Role currentRole) { this.currentRole = currentRole; }
@@ -194,6 +218,8 @@ public class PlayerRoleRepository {
         public void setHealerExp(int healerExp) { this.healerExp = healerExp; }
         public void setSkillPoints(int skillPoints) { this.skillPoints = skillPoints; }
         public void setLastRoleChange(long lastRoleChange) { this.lastRoleChange = lastRoleChange; }
+        public void setSelectedSkillId(String selectedSkillId) { this.selectedSkillId = selectedSkillId; }
+        public void setLastSkillChange(long lastSkillChange) { this.lastSkillChange = lastSkillChange; }
 
         /**
          * Lấy level của role cụ thể

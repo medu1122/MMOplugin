@@ -106,6 +106,11 @@ public class RoleManager {
                 luckPermsManager.setPlayerGroup(player, role);
             }
 
+            // Give skill items sau 1 tick
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                giveSkillItems(player, role);
+            }, 1L);
+
             player.sendMessage(configManager.getMessage("role_selected")
                     .replace("{role}", role.getFullDisplayName()));
 
@@ -207,6 +212,12 @@ public class RoleManager {
             if (luckPermsManager.isEnabled()) {
                 luckPermsManager.setPlayerGroup(player, newRole);
             }
+
+            // Remove old role skill items và give new role skill items
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                me.skibidi.rolemmo.util.SkillItemUtil.removeAllSkillItems(player, currentRole);
+                giveSkillItems(player, newRole);
+            }, 1L);
 
             player.sendMessage(configManager.getMessage("role_change_success")
                     .replace("{role}", newRole.getFullDisplayName()));
@@ -342,5 +353,27 @@ public class RoleManager {
 
     public MoneyPluginManager getMoneyPluginManager() {
         return moneyPluginManager;
+    }
+
+    public ClanCoreManager getClanCoreManager() {
+        return new ClanCoreManager(plugin);
+    }
+
+    /**
+     * Give skill items cho player dựa trên role
+     */
+    private void giveSkillItems(Player player, Role role) {
+        me.skibidi.rolemmo.manager.SkillManager skillManager = plugin.getSkillManager();
+        if (skillManager == null) {
+            return;
+        }
+
+        java.util.List<me.skibidi.rolemmo.model.Skill> skills = skillManager.getSkills(role);
+        for (me.skibidi.rolemmo.model.Skill skill : skills) {
+            int level = skillManager.getPlayerSkillLevel(player, skill.getId());
+            if (level > 0) {
+                me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, skill, level);
+            }
+        }
     }
 }

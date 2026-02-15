@@ -186,9 +186,9 @@ Plugin ROLEmmo là hệ thống role-playing với 3 vai trò chính (TANKER, DP
   - Format: `skills.upgrade_costs.1`, `skills.upgrade_costs.2`, etc.
   - Hoặc có thể config riêng cho từng skill
 
-### 5.4 DPS Skill Implementation (Fireball Skill)
-- [ ] **Tạo FireballSkill class**
-  - Extends base Skill class hoặc implement Skill interface
+### 5.4 DPS Skills Implementation
+- [ ] **FireballSkill (Skill đầu tiên - nghiên cứu)**
+  - Extends base Skill class
   - Properties theo level:
     - Level 1: 5 cầu lửa, 10hp damage, 36 block range, 12s cooldown, burn effect
     - Level 2: 5 cầu lửa, 19hp damage, 36 block range, 11s cooldown, burn +5%
@@ -196,6 +196,16 @@ Plugin ROLEmmo là hệ thống role-playing với 3 vai trò chính (TANKER, DP
     - Level 4: 6 cầu lửa, 38hp damage, 36 block range, 9s cooldown, burn +15%
     - Level 5: 7 cầu lửa, 50hp damage, 36 block range, 8s cooldown, burn +20%
     - Level 6: 7 cầu lửa, 67hp damage, 36 block range, 8s cooldown, burn +25%
+  - **Effect hoành tráng**: Particles đẹp, màu mè, sound effects
+  - **Lưu ý**: Đây chỉ là 1 trong nhiều skills của DPS role
+
+- [ ] **Skill Selection System**
+  - Mỗi role có nhiều skills (DPS sẽ có nhiều skills khác ngoài Fireball)
+  - Player chỉ có thể dùng 1 skill tại 1 thời điểm
+  - Có thể đổi skill sau 30 phút (cooldown)
+  - Hiển thị text nhắc nhở khi còn cooldown
+  - Database lưu skill đã chọn để giữ khi đăng nhập lại
+  - GUI riêng để chọn skill (SkillSelectionGUI)
 
 - [ ] **Skill Item System**
   - Tạo custom item cho skill (không thể drop, không thể đưa vào chest)
