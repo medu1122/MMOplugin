@@ -4,6 +4,7 @@ import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.SkillManager;
 import me.skibidi.rolemmo.model.Role;
 import me.skibidi.rolemmo.model.Skill;
+import me.skibidi.rolemmo.util.GUIUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -38,19 +39,25 @@ public class SkillListGUI {
             return;
         }
 
-        Inventory inv = Bukkit.createInventory(null, 54, "§6Skills - " + currentRole.getFullDisplayName());
+        String[] roleGradient = getGradientForRole(currentRole);
+        Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("📚 SKILLS", GUIUtil.GRADIENT_BLUE) + 
+                " " + GUIUtil.gradientText(currentRole.getFullDisplayName(), roleGradient));
 
-        // Info item ở slot 4
+        // Info item ở slot 4 với font lớn
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
         if (infoMeta != null) {
-            infoMeta.setDisplayName("§6Thông Tin Skills");
+            infoMeta.setDisplayName(GUIUtil.createLargeTitle("📖 THÔNG TIN", GUIUtil.GRADIENT_BLUE));
             List<String> lore = new ArrayList<>();
-            lore.add("§7Role: " + currentRole.getFullDisplayName());
-            lore.add("§7Tổng số skills: §e" + skills.size());
-            lore.add("§7Skill Points: §e" + roleManager.getSkillPoints(player));
-            lore.add("");
-            lore.add("§eClick vào skill để xem chi tiết!");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§lRole: " + GUIUtil.gradientText(currentRole.getFullDisplayName(), roleGradient));
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lTổng số skills: " + GUIUtil.gradientText(String.valueOf(skills.size()), GUIUtil.GRADIENT_GOLD));
+            lore.add(GUIUtil.COLOR_HIGHLIGHT + "§lSkill Points: " + GUIUtil.gradientText(String.valueOf(roleManager.getSkillPoints(player)), GUIUtil.GRADIENT_PURPLE));
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click vào skill để xem chi tiết!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
         }
@@ -162,7 +169,7 @@ public class SkillListGUI {
     }
 
     /**
-     * Tạo ItemStack cho skill
+     * Tạo ItemStack cho skill với font lớn và màu sắc đẹp
      */
     private static ItemStack createSkillItem(Skill skill, int currentLevel, SkillManager skillManager, 
                                             me.skibidi.rolemmo.manager.RoleManager roleManager, Player player) {
@@ -171,28 +178,47 @@ public class SkillListGUI {
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§e" + skill.getName());
+            String skillIcon = GUIUtil.getSkillIcon(skill.getId());
+            meta.setDisplayName(GUIUtil.createLargeTitle(skillIcon + " " + skill.getName(), GUIUtil.GRADIENT_PURPLE));
             
             List<String> lore = new ArrayList<>();
-            lore.add("§7" + skill.getDescription());
-            lore.add("");
-            lore.add("§7Level hiện tại: §e" + currentLevel + "§7/§e" + skill.getMaxLevel());
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§l" + skill.getDescription());
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lLevel hiện tại: " + 
+                    GUIUtil.gradientText(String.valueOf(currentLevel), GUIUtil.GRADIENT_BLUE) + 
+                    GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText(String.valueOf(skill.getMaxLevel()), GUIUtil.GRADIENT_BLUE));
             
             if (currentLevel < skill.getMaxLevel()) {
                 int requiredPoints = plugin.getConfigManager().getSkillUpgradeCost(currentLevel);
-                lore.add("§7Level tiếp theo cần: §e" + requiredPoints + " điểm");
+                lore.add(GUIUtil.COLOR_WARNING + "§lLevel tiếp theo cần: " + 
+                        GUIUtil.gradientText(requiredPoints + " điểm", GUIUtil.GRADIENT_GOLD));
             } else {
-                lore.add("§a§lĐã đạt level tối đa!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Đã đạt level tối đa!");
             }
             
-            lore.add("");
-            lore.add("§eClick để xem chi tiết và upgrade!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để xem chi tiết và upgrade!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
 
         return item;
+    }
+
+    /**
+     * Lấy gradient colors cho role
+     */
+    private static String[] getGradientForRole(Role role) {
+        return switch (role) {
+            case TANKER -> GUIUtil.GRADIENT_BLUE;
+            case DPS -> GUIUtil.GRADIENT_RED;
+            case HEALER -> GUIUtil.GRADIENT_GREEN;
+        };
     }
 
     /**

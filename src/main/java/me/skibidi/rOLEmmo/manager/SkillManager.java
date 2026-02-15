@@ -168,12 +168,20 @@ public class SkillManager {
             return false;
         }
 
-        // Execute skill
-        boolean success = skill.execute(player, level);
-        if (success) {
-            // Set cooldown
-            Skill.SkillLevelInfo levelInfo = skill.getLevelInfo(level);
-            setCooldown(player, skillId, levelInfo.getCooldown());
+        // Execute skill với error handling
+        boolean success = false;
+        try {
+            success = skill.execute(player, level);
+            if (success) {
+                // Set cooldown
+                Skill.SkillLevelInfo levelInfo = skill.getLevelInfo(level);
+                setCooldown(player, skillId, levelInfo.getCooldown());
+            }
+        } catch (Exception e) {
+            logger.severe("Error executing skill " + skillId + " for player " + player.getName() + ": " + e.getMessage());
+            e.printStackTrace();
+            player.sendMessage("§cLỗi khi sử dụng skill! Vui lòng thử lại sau.");
+            return false;
         }
 
         return success;

@@ -4,6 +4,7 @@ import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.SkillManager;
 import me.skibidi.rolemmo.model.Role;
 import me.skibidi.rolemmo.model.Skill;
+import me.skibidi.rolemmo.util.GUIUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -47,34 +48,42 @@ public class SkillSelectionGUI {
         boolean canChange = timeSinceChange >= SKILL_CHANGE_COOLDOWN;
         long remainingMinutes = (SKILL_CHANGE_COOLDOWN - timeSinceChange) / (60 * 1000);
 
-        Inventory inv = Bukkit.createInventory(null, 54, "§6Chọn Skill - " + currentRole.getFullDisplayName());
+        String[] roleGradient = getGradientForRole(currentRole);
+        Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("⚡ CHỌN SKILL", GUIUtil.GRADIENT_PURPLE) + 
+                " " + GUIUtil.gradientText(currentRole.getFullDisplayName(), roleGradient));
 
-        // Info item ở slot 4
+        // Info item ở slot 4 với font lớn
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
         if (infoMeta != null) {
-            infoMeta.setDisplayName("§6Thông Tin Chọn Skill");
+            infoMeta.setDisplayName(GUIUtil.createLargeTitle("📖 THÔNG TIN", GUIUtil.GRADIENT_BLUE));
             List<String> lore = new ArrayList<>();
-            lore.add("§7Role: " + currentRole.getFullDisplayName());
-            lore.add("§7Số skills: §e" + skills.size());
-            lore.add("");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§lRole: " + GUIUtil.gradientText(currentRole.getFullDisplayName(), roleGradient));
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lSố skills: " + GUIUtil.gradientText(String.valueOf(skills.size()), GUIUtil.GRADIENT_GOLD));
+            lore.add(" ");
             if (selectedSkillId != null) {
                 Skill selectedSkill = skillManager.getSkill(selectedSkillId);
                 if (selectedSkill != null) {
-                    lore.add("§7Skill đang dùng: §e" + selectedSkill.getName());
+                    lore.add(GUIUtil.COLOR_PRIMARY + "§lSkill đang dùng:");
+                    lore.add(GUIUtil.gradientText("  " + selectedSkill.getName(), GUIUtil.GRADIENT_GOLD));
                 }
             } else {
-                lore.add("§7Skill đang dùng: §cChưa chọn");
+                lore.add(GUIUtil.COLOR_ERROR + "§lSkill đang dùng:");
+                lore.add(GUIUtil.COLOR_MUTED + "  Chưa chọn");
             }
-            lore.add("");
+            lore.add(" ");
             if (canChange) {
-                lore.add("§aCó thể đổi skill!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Có thể đổi skill!");
             } else {
-                lore.add("§cCooldown: §e" + remainingMinutes + " phút");
-                lore.add("§7Còn lại: §e" + formatTime(remainingMinutes * 60 * 1000));
+                lore.add(GUIUtil.COLOR_ERROR + "§lCooldown: " + GUIUtil.gradientText(remainingMinutes + " phút", GUIUtil.GRADIENT_RED));
+                lore.add(GUIUtil.COLOR_MUTED + "Còn lại: " + GUIUtil.COLOR_INFO + formatTime(remainingMinutes * 60 * 1000));
             }
-            lore.add("");
-            lore.add("§eClick vào skill để chọn!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click vào skill để chọn!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
         }

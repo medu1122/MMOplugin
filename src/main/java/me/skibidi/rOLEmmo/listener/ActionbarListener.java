@@ -51,38 +51,51 @@ public class ActionbarListener {
             return;
         }
 
-        var skills = skillManager.getSkills(currentRole);
-        if (skills.isEmpty()) {
+        // Lấy skill đã chọn
+        String selectedSkillId = skillManager.getSelectedSkillId(player);
+        if (selectedSkillId == null) {
+            // Chưa chọn skill, không hiển thị gì
+            String lastMessage = lastActionbarMessage.get(player.getUniqueId());
+            if (lastMessage != null) {
+                // Clear actionbar nếu đã có message trước đó
+                player.sendActionBar(" ");
+                lastActionbarMessage.remove(player.getUniqueId());
+            }
             return;
         }
 
-        // Tìm skill đang cooldown hoặc sẵn sàng
-        String message = null;
-        for (Skill skill : skills) {
-            String skillId = skill.getId();
-            int level = skillManager.getPlayerSkillLevel(player, skillId);
-            
-            if (level < 1) {
-                continue; // Chưa học skill này
-            }
+        Skill selectedSkill = skillManager.getSkill(selectedSkillId);
+        if (selectedSkill == null) {
+            return;
+        }
 
-            if (skillManager.isOnCooldown(player, skillId)) {
-                long remaining = skillManager.getCooldownRemaining(player, skillId);
-                message = "§c" + skill.getName() + " §7Cooldown: §e" + remaining + "s";
-                break; // Ưu tiên hiển thị skill đang cooldown
-            } else {
-                if (message == null) {
-                    message = "§a" + skill.getName() + " §7đã sẵn sàng";
-                }
-            }
+        int level = skillManager.getPlayerSkillLevel(player, selectedSkillId);
+        if (level < 1) {
+            // Chưa học skill này
+            return;
+        }
+
+        // Hiển thị cooldown hoặc ready status
+        String message;
+        if (skillManager.isOnCooldown(player, selectedSkillId)) {
+            long remaining = skillManager.getCooldownRemaining(player, selectedSkillId);
+            message = "§c" + selectedSkill.getName() + " §7Cooldown: §e" + remaining + "s";
+        } else {
+            message = "§a" + selectedSkill.getName() + " §7đã sẵn sàng";
         }
 
         // Chỉ update nếu message thay đổi
         String lastMessage = lastActionbarMessage.get(player.getUniqueId());
-        if (!message.equals(lastMessage)) {
-            if (message != null) {
+        if (message != null) {
+            if (!message.equals(lastMessage)) {
                 player.sendActionBar(message);
                 lastActionbarMessage.put(player.getUniqueId(), message);
+            }
+        } else {
+            // Clear actionbar nếu không có message
+            if (lastMessage != null) {
+                player.sendActionBar(" ");
+                lastActionbarMessage.remove(player.getUniqueId());
             }
         }
     }

@@ -3,6 +3,7 @@ package me.skibidi.rolemmo.gui;
 import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.SkillManager;
 import me.skibidi.rolemmo.model.Skill;
+import me.skibidi.rolemmo.util.GUIUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -32,18 +33,25 @@ public class SkillUpgradeGUI {
         int currentLevel = skillManager.getPlayerSkillLevel(player, skill.getId());
         int skillPoints = plugin.getRoleManager().getSkillPoints(player);
 
-        Inventory inv = Bukkit.createInventory(null, 54, "§6Upgrade: " + skill.getName());
+        String skillIcon = GUIUtil.getSkillIcon(skill.getId());
+        Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("⚡ UPGRADE: " + skill.getName(), GUIUtil.GRADIENT_PURPLE));
 
-        // Skill info ở center
+        // Skill info ở center với font lớn
         ItemStack skillItem = new ItemStack(getMaterialForSkill(skill));
         ItemMeta skillMeta = skillItem.getItemMeta();
         if (skillMeta != null) {
-            skillMeta.setDisplayName("§e" + skill.getName());
+            skillMeta.setDisplayName(GUIUtil.createLargeTitle(skillIcon + " " + skill.getName(), GUIUtil.GRADIENT_PURPLE));
             List<String> lore = new ArrayList<>();
-            lore.add("§7" + skill.getDescription());
-            lore.add("");
-            lore.add("§7Level hiện tại: §e" + currentLevel + "§7/§e" + skill.getMaxLevel());
-            lore.add("§7Skill Points: §e" + skillPoints);
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§l" + skill.getDescription());
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lLevel hiện tại: " + 
+                    GUIUtil.gradientText(String.valueOf(currentLevel), GUIUtil.GRADIENT_BLUE) + 
+                    GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText(String.valueOf(skill.getMaxLevel()), GUIUtil.GRADIENT_BLUE));
+            lore.add(GUIUtil.COLOR_HIGHLIGHT + "§lSkill Points: " + GUIUtil.gradientText(String.valueOf(skillPoints), GUIUtil.GRADIENT_PURPLE));
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             skillMeta.setLore(lore);
             skillItem.setItemMeta(skillMeta);
         }
@@ -62,7 +70,7 @@ public class SkillUpgradeGUI {
             inv.setItem(slot, levelItem);
         }
 
-        // Upgrade button (nếu có thể)
+        // Upgrade button (nếu có thể) với font lớn
         if (currentLevel < skill.getMaxLevel()) {
             int requiredPoints = plugin.getConfigManager().getSkillUpgradeCost(currentLevel);
             boolean canUpgrade = skillPoints >= requiredPoints;
@@ -70,29 +78,40 @@ public class SkillUpgradeGUI {
             ItemStack upgradeButton = new ItemStack(canUpgrade ? Material.EMERALD : Material.REDSTONE);
             ItemMeta upgradeMeta = upgradeButton.getItemMeta();
             if (upgradeMeta != null) {
-                upgradeMeta.setDisplayName(canUpgrade ? "§aUpgrade Skill" : "§cKhông đủ điểm");
+                upgradeMeta.setDisplayName(canUpgrade ? 
+                        GUIUtil.createLargeTitle("✓ UPGRADE SKILL", GUIUtil.GRADIENT_GREEN) :
+                        GUIUtil.createLargeTitle("✖ KHÔNG ĐỦ ĐIỂM", GUIUtil.GRADIENT_RED));
                 List<String> lore = new ArrayList<>();
-                lore.add("§7Từ level §e" + currentLevel + " §7lên §e" + (currentLevel + 1));
-                lore.add("§7Cần: §e" + requiredPoints + " điểm");
-                lore.add("§7Bạn có: §e" + skillPoints + " điểm");
-                lore.add("");
+                lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                lore.add(" ");
+                lore.add(GUIUtil.COLOR_SECONDARY + "§lTừ level " + GUIUtil.gradientText(String.valueOf(currentLevel), GUIUtil.GRADIENT_BLUE) + 
+                        GUIUtil.COLOR_MUTED + " lên " + GUIUtil.gradientText(String.valueOf(currentLevel + 1), GUIUtil.GRADIENT_BLUE));
+                lore.add(GUIUtil.COLOR_WARNING + "§lCần: " + GUIUtil.gradientText(requiredPoints + " điểm", GUIUtil.GRADIENT_GOLD));
+                lore.add(GUIUtil.COLOR_HIGHLIGHT + "§lBạn có: " + GUIUtil.gradientText(skillPoints + " điểm", GUIUtil.GRADIENT_PURPLE));
+                lore.add(" ");
                 if (canUpgrade) {
-                    lore.add("§eClick để upgrade!");
+                    lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để upgrade!");
                 } else {
-                    lore.add("§cKhông đủ skill points!");
+                    lore.add(GUIUtil.COLOR_ERROR + "§l✖ Không đủ skill points!");
                 }
+                lore.add(" ");
+                lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                 upgradeMeta.setLore(lore);
                 upgradeButton.setItemMeta(upgradeMeta);
             }
             inv.setItem(31, upgradeButton);
         } else {
-            // Max level reached
+            // Max level reached với font lớn
             ItemStack maxLevelItem = new ItemStack(Material.GOLD_BLOCK);
             ItemMeta maxMeta = maxLevelItem.getItemMeta();
             if (maxMeta != null) {
-                maxMeta.setDisplayName("§a§lĐã đạt level tối đa!");
+                maxMeta.setDisplayName(GUIUtil.createLargeTitle("✓ ĐÃ ĐẠT LEVEL TỐI ĐA", GUIUtil.GRADIENT_GOLD));
                 List<String> lore = new ArrayList<>();
-                lore.add("§7Skill đã được nâng cấp tối đa!");
+                lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                lore.add(" ");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§lSkill đã được nâng cấp tối đa!");
+                lore.add(" ");
+                lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                 maxMeta.setLore(lore);
                 maxLevelItem.setItemMeta(maxMeta);
             }
@@ -145,7 +164,7 @@ public class SkillUpgradeGUI {
     }
 
     /**
-     * Tạo ItemStack cho level info
+     * Tạo ItemStack cho level info với font lớn và màu sắc đẹp
      */
     private static ItemStack createLevelItem(int level, Skill.SkillLevelInfo levelInfo, int currentLevel, 
                                              int skillPoints, ROLEmmo plugin) {
@@ -154,40 +173,49 @@ public class SkillUpgradeGUI {
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            String displayName = level <= currentLevel ? "§aLevel " + level : "§7Level " + level;
+            String displayName;
             if (level == currentLevel) {
-                displayName = "§e§lLevel " + level + " §e§l(HIỆN TẠI)";
+                displayName = GUIUtil.createLargeTitle("LEVEL " + level, GUIUtil.GRADIENT_GOLD) + 
+                        GUIUtil.COLOR_WARNING + " §l(HIỆN TẠI)";
+            } else if (level <= currentLevel) {
+                displayName = GUIUtil.createLargeTitle("LEVEL " + level, GUIUtil.GRADIENT_GREEN);
+            } else {
+                displayName = GUIUtil.COLOR_MUTED + "§lLevel " + level;
             }
             meta.setDisplayName(displayName);
             
             List<String> lore = new ArrayList<>();
-            lore.add("§7Damage: §c" + levelInfo.getDamage() + " HP");
-            lore.add("§7Cooldown: §e" + levelInfo.getCooldown() + "s");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_ERROR + "§lDamage: " + GUIUtil.gradientText(levelInfo.getDamage() + " HP", GUIUtil.GRADIENT_RED));
+            lore.add(GUIUtil.COLOR_WARNING + "§lCooldown: " + GUIUtil.gradientText(levelInfo.getCooldown() + "s", GUIUtil.GRADIENT_GOLD));
             
             // Fireball count
             int fireballCount = levelInfo.getPropertyInt("fireballCount", 5);
-            lore.add("§7Số cầu lửa: §e" + fireballCount);
+            lore.add(GUIUtil.COLOR_INFO + "§lSố cầu lửa: " + GUIUtil.gradientText(String.valueOf(fireballCount), GUIUtil.GRADIENT_BLUE));
             
             // Burn effect
             double burnPercent = levelInfo.getPropertyDouble("burnDurationPercent", 0.0);
             if (burnPercent > 0) {
-                lore.add("§7Hiệu ứng đốt: §c+" + String.format("%.0f", burnPercent) + "%");
+                lore.add(GUIUtil.COLOR_ERROR + "§lHiệu ứng đốt: " + GUIUtil.gradientText("+" + String.format("%.0f", burnPercent) + "%", GUIUtil.GRADIENT_RED));
             }
             
-            lore.add("");
+            lore.add(" ");
             if (level <= currentLevel) {
-                lore.add("§aĐã học");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Đã học");
             } else if (level == currentLevel + 1) {
                 int requiredPoints = plugin.getConfigManager().getSkillUpgradeCost(currentLevel);
-                lore.add("§7Cần: §e" + requiredPoints + " điểm");
+                lore.add(GUIUtil.COLOR_WARNING + "§lCần: " + GUIUtil.gradientText(requiredPoints + " điểm", GUIUtil.GRADIENT_GOLD));
                 if (skillPoints >= requiredPoints) {
-                    lore.add("§aCó thể upgrade!");
+                    lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Có thể upgrade!");
                 } else {
-                    lore.add("§cKhông đủ điểm!");
+                    lore.add(GUIUtil.COLOR_ERROR + "§l✖ Không đủ điểm!");
                 }
             } else {
-                lore.add("§7Chưa thể học");
+                lore.add(GUIUtil.COLOR_MUTED + "Chưa thể học");
             }
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             meta.setLore(lore);
             item.setItemMeta(meta);

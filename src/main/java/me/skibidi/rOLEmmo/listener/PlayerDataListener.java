@@ -83,6 +83,9 @@ public class PlayerDataListener implements Listener {
             skillManager.clearCooldowns(player);
         }
         
+        // Note: ActionbarListener sẽ tự động clear khi player quit
+        // Không cần tạo instance mới ở đây
+        
         // Data sẽ được save tự động khi có thay đổi
         plugin.getLogger().fine("Player " + player.getName() + " quit - data saved");
     }

@@ -4,6 +4,7 @@ import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.TitleManager;
 import me.skibidi.rolemmo.model.Role;
 import me.skibidi.rolemmo.model.Title;
+import me.skibidi.rolemmo.util.GUIUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -54,23 +55,32 @@ public class TitleGUI {
         if (page < 0) page = 0;
         if (page >= totalPages && totalPages > 0) page = totalPages - 1;
 
-        Inventory inv = Bukkit.createInventory(null, 54, "§6Danh Hiệu §7(Page " + (page + 1) + "/" + Math.max(1, totalPages) + ")");
+        Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("🏆 DANH HIỆU", GUIUtil.GRADIENT_GOLD) + 
+                GUIUtil.COLOR_MUTED + " §7(Page " + (page + 1) + "/" + Math.max(1, totalPages) + ")");
 
-        // Info item ở slot 4
+        // Info item ở slot 4 với font lớn
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
         if (infoMeta != null) {
-            infoMeta.setDisplayName("§6Thông Tin Danh Hiệu");
+            infoMeta.setDisplayName(GUIUtil.createLargeTitle("📖 THÔNG TIN", GUIUtil.GRADIENT_BLUE));
             List<String> lore = new ArrayList<>();
-            lore.add("§7Tổng số danh hiệu: §e" + titles.size());
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lTổng số danh hiệu: " + GUIUtil.gradientText(String.valueOf(titles.size()), GUIUtil.GRADIENT_GOLD));
             if (activeTitle != null) {
-                lore.add("§7Danh hiệu đang dùng: " + activeTitle.getDisplayName());
+                lore.add(" ");
+                lore.add(GUIUtil.COLOR_PRIMARY + "§lDanh hiệu đang dùng:");
+                lore.add(GUIUtil.gradientText("  " + activeTitle.getDisplayName(), GUIUtil.GRADIENT_GOLD));
             } else {
-                lore.add("§7Danh hiệu đang dùng: §cKhông có");
+                lore.add(" ");
+                lore.add(GUIUtil.COLOR_ERROR + "§lDanh hiệu đang dùng:");
+                lore.add(GUIUtil.COLOR_MUTED + "  Không có");
             }
-            lore.add("");
-            lore.add("§eClick vào danh hiệu để sử dụng!");
-            lore.add("§7Danh hiệu đã unlock sẽ có thể sử dụng.");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click vào danh hiệu để sử dụng!");
+            lore.add(GUIUtil.COLOR_MUTED + "Danh hiệu đã unlock sẽ có thể sử dụng.");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
         }
@@ -220,7 +230,7 @@ public class TitleGUI {
     }
 
     /**
-     * Tạo ItemStack cho title
+     * Tạo ItemStack cho title với font lớn và màu sắc đẹp
      */
     private static ItemStack createTitleItem(Title title, Title activeTitle) {
         Material material = getMaterialForRole(title.getRole());
@@ -230,30 +240,49 @@ public class TitleGUI {
         if (meta != null) {
             boolean isActive = activeTitle != null && activeTitle.getId().equals(title.getId());
             
-            // Display name
-            String displayName = title.getDisplayName();
+            // Display name với font lớn
+            String displayName;
             if (isActive) {
-                displayName = "§a§l✓ " + displayName + " §a§l(ĐANG DÙNG)";
+                displayName = GUIUtil.createLargeTitle("✓ " + title.getDisplayName(), GUIUtil.GRADIENT_GREEN) + 
+                        GUIUtil.COLOR_SUCCESS + " §l(ĐANG DÙNG)";
+            } else {
+                displayName = GUIUtil.createLargeTitle(title.getDisplayName(), GUIUtil.GRADIENT_GOLD);
             }
             meta.setDisplayName(displayName);
 
-            // Lore
+            // Lore với formatting đẹp
             List<String> lore = new ArrayList<>();
-            lore.add("§7Role: " + title.getRole().getFullDisplayName());
-            lore.add("§7Level yêu cầu: §e" + title.getRequiredLevel());
-            lore.add("");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§lRole: " + GUIUtil.gradientText(title.getRole().getFullDisplayName(), 
+                    getGradientForRole(title.getRole())));
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lLevel yêu cầu: " + GUIUtil.gradientText(String.valueOf(title.getRequiredLevel()), GUIUtil.GRADIENT_BLUE));
+            lore.add(" ");
             
             if (isActive) {
-                lore.add("§a§lĐang sử dụng danh hiệu này!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Đang sử dụng danh hiệu này!");
             } else {
-                lore.add("§eClick để sử dụng danh hiệu này!");
+                lore.add(GUIUtil.COLOR_WARNING + "§lClick để sử dụng danh hiệu này!");
             }
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
 
         return item;
+    }
+
+    /**
+     * Lấy gradient colors cho role
+     */
+    private static String[] getGradientForRole(Role role) {
+        return switch (role) {
+            case TANKER -> GUIUtil.GRADIENT_BLUE;
+            case DPS -> GUIUtil.GRADIENT_RED;
+            case HEALER -> GUIUtil.GRADIENT_GREEN;
+        };
     }
 
     /**
