@@ -3,26 +3,20 @@ package me.skibidi.rolemmo.command;
 import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.RoleManager;
 import me.skibidi.rolemmo.model.Role;
-import me.skibidi.rolemmo.storage.DatabaseManager;
-import me.skibidi.rolemmo.storage.repository.PlayerRoleRepository;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.sql.SQLException;
-
 public class RoleAdminCommand implements CommandExecutor {
 
     private final ROLEmmo plugin;
     private final RoleManager roleManager;
-    private final PlayerRoleRepository playerRoleRepository;
 
     public RoleAdminCommand(ROLEmmo plugin) {
         this.plugin = plugin;
         this.roleManager = plugin.getRoleManager();
-        this.playerRoleRepository = new PlayerRoleRepository(plugin.getDatabaseManager());
     }
 
     @Override
@@ -64,25 +58,24 @@ public class RoleAdminCommand implements CommandExecutor {
                         return true;
                     }
 
-                    PlayerRoleRepository.PlayerRoleData data = playerRoleRepository.getPlayerRole(target.getUniqueId());
-                    if (data == null) {
+                    if (plugin.getRoleManager().getPlayerRole(target) == null) {
                         sender.sendMessage("§cPlayer chưa có role! Hãy cho họ chọn role trước.");
                         return true;
                     }
 
-                    data.setLevel(role, level);
-                    playerRoleRepository.savePlayerRole(data);
-
-                    sender.sendMessage(plugin.getConfigManager().getMessage("admin_give_level")
-                            .replace("{player}", target.getName())
-                            .replace("{level}", String.valueOf(level)));
-                    target.sendMessage("§aAdmin đã set level " + level + " cho role " + role.getDisplayName() + " của bạn!");
+                    // Sử dụng LevelManager để set level (sẽ tự động unlock titles)
+                    if (plugin.getLevelManager().setLevel(target, role, level)) {
+                        sender.sendMessage(plugin.getConfigManager().getMessage("admin_give_level")
+                                .replace("{player}", target.getName())
+                                .replace("{level}", String.valueOf(level)));
+                        target.sendMessage("§aAdmin đã set level " + level + " cho role " + role.getDisplayName() + " của bạn!");
+                    } else {
+                        sender.sendMessage("§cLỗi khi set level! Vui lòng thử lại sau.");
+                    }
                 } catch (IllegalArgumentException e) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
                 } catch (NumberFormatException e) {
                     sender.sendMessage("§cLevel phải là số!");
-                } catch (SQLException e) {
-                    sender.sendMessage("§cLỗi database: " + e.getMessage());
                 }
             }
 
