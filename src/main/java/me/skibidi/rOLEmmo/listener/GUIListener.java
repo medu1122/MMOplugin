@@ -49,7 +49,9 @@ public class GUIListener implements Listener {
             title.startsWith("§6Danh Hiệu") ||
             title.startsWith("§6Skills") ||
             title.startsWith("§6Upgrade:") ||
-            title.startsWith("§6Chọn Skill")) {
+            title.startsWith("§6Chọn Skill") ||
+            title.startsWith("§6Chọn Role") ||
+            title.startsWith("§6Đổi Role")) {
             event.setCancelled(true);
 
             if (clicked == null || clicked.getType() == Material.AIR) return;
@@ -73,6 +75,14 @@ public class GUIListener implements Listener {
             // Skill Selection GUI
             else if (title.startsWith("§6Chọn Skill")) {
                 handleSkillSelectionClick(player, event.getSlot(), clicked, title);
+            }
+            // Role Select GUI
+            else if (title.startsWith("§6Chọn Role")) {
+                handleRoleSelectClick(player, event.getSlot(), clicked);
+            }
+            // Role Change GUI
+            else if (title.startsWith("§6Đổi Role")) {
+                handleRoleChangeClick(player, event.getSlot(), clicked);
             }
         }
     }
@@ -107,8 +117,7 @@ public class GUIListener implements Listener {
 
         // Change role button
         if (slot == 33 && clicked.getType() == Material.ENDER_PEARL) {
-            // TODO: Mở Change Role GUI (sẽ implement sau)
-            player.sendMessage("§eSử dụng /role change <role> để đổi role!");
+            me.skibidi.rolemmo.gui.RoleChangeGUI.open(player, plugin);
             return;
         }
     }
@@ -353,6 +362,109 @@ public class GUIListener implements Listener {
                 }
                 return;
             }
+        }
+    }
+
+    /**
+     * Xử lý click trong Role Select GUI
+     */
+    private void handleRoleSelectClick(Player player, int slot, ItemStack clicked) {
+        // TANKER
+        if (slot == 20 && clicked.getType() == Material.SHIELD) {
+            if (roleManager.selectRole(player, me.skibidi.rolemmo.model.Role.TANKER)) {
+                player.closeInventory();
+                // Mở RoleInfoGUI sau khi chọn
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    RoleInfoGUI.open(player, plugin);
+                }, 5L);
+            }
+            return;
+        }
+
+        // DPS
+        if (slot == 22 && clicked.getType() == Material.DIAMOND_SWORD) {
+            if (roleManager.selectRole(player, me.skibidi.rolemmo.model.Role.DPS)) {
+                player.closeInventory();
+                // Mở RoleInfoGUI sau khi chọn
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    RoleInfoGUI.open(player, plugin);
+                }, 5L);
+            }
+            return;
+        }
+
+        // HEALER
+        if (slot == 24 && clicked.getType() == Material.GOLDEN_APPLE) {
+            if (roleManager.selectRole(player, me.skibidi.rolemmo.model.Role.HEALER)) {
+                player.closeInventory();
+                // Mở RoleInfoGUI sau khi chọn
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    RoleInfoGUI.open(player, plugin);
+                }, 5L);
+            }
+            return;
+        }
+    }
+
+    /**
+     * Xử lý click trong Role Change GUI
+     */
+    private void handleRoleChangeClick(Player player, int slot, ItemStack clicked) {
+        // Back button
+        if (slot == 48 && clicked.getType() == Material.ARROW) {
+            RoleInfoGUI.open(player, plugin);
+            return;
+        }
+
+        // Close button
+        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+            player.closeInventory();
+            return;
+        }
+
+        // TANKER
+        if (slot == 20 && clicked.getType() == Material.SHIELD) {
+            me.skibidi.rolemmo.model.Role targetRole = me.skibidi.rolemmo.model.Role.TANKER;
+            if (roleManager.getPlayerRole(player) != targetRole) {
+                if (roleManager.changeRole(player, targetRole)) {
+                    player.closeInventory();
+                    // Mở RoleInfoGUI sau khi đổi
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                        RoleInfoGUI.open(player, plugin);
+                    }, 5L);
+                }
+            }
+            return;
+        }
+
+        // DPS
+        if (slot == 22 && clicked.getType() == Material.DIAMOND_SWORD) {
+            me.skibidi.rolemmo.model.Role targetRole = me.skibidi.rolemmo.model.Role.DPS;
+            if (roleManager.getPlayerRole(player) != targetRole) {
+                if (roleManager.changeRole(player, targetRole)) {
+                    player.closeInventory();
+                    // Mở RoleInfoGUI sau khi đổi
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                        RoleInfoGUI.open(player, plugin);
+                    }, 5L);
+                }
+            }
+            return;
+        }
+
+        // HEALER
+        if (slot == 24 && clicked.getType() == Material.GOLDEN_APPLE) {
+            me.skibidi.rolemmo.model.Role targetRole = me.skibidi.rolemmo.model.Role.HEALER;
+            if (roleManager.getPlayerRole(player) != targetRole) {
+                if (roleManager.changeRole(player, targetRole)) {
+                    player.closeInventory();
+                    // Mở RoleInfoGUI sau khi đổi
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                        RoleInfoGUI.open(player, plugin);
+                    }, 5L);
+                }
+            }
+            return;
         }
     }
 }

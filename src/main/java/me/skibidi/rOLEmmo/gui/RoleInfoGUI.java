@@ -127,27 +127,29 @@ public class RoleInfoGUI {
         }
         inv.setItem(31, titlesButton);
 
-        // Change role button (nếu có thể)
-        if (roleManager.canChangeRole(player)) {
-            ItemStack changeRoleButton = new ItemStack(Material.ENDER_PEARL);
-            ItemMeta changeMeta = changeRoleButton.getItemMeta();
-            if (changeMeta != null) {
-                changeMeta.setDisplayName("§eĐổi Role");
-                List<String> lore = new ArrayList<>();
-                if (roleManager.canChangeRoleForFree(player)) {
-                    lore.add("§7Click để đổi role");
-                    lore.add("§aCó thể đổi miễn phí!");
-                } else {
-                    long cost = plugin.getConfigManager().getRoleChangeCost();
-                    lore.add("§7Click để đổi role");
-                    lore.add("§7Cost: §e" + cost + " coins");
-                    lore.add("§7Hoặc đợi: §e" + roleManager.getTimeUntilCanChange(player));
-                }
-                changeMeta.setLore(lore);
-                changeRoleButton.setItemMeta(changeMeta);
+        // Change role button
+        ItemStack changeRoleButton = new ItemStack(Material.ENDER_PEARL);
+        ItemMeta changeMeta = changeRoleButton.getItemMeta();
+        if (changeMeta != null) {
+            changeMeta.setDisplayName("§eĐổi Role");
+            List<String> lore = new ArrayList<>();
+            if (roleManager.canChangeRoleForFree(player)) {
+                lore.add("§7Click để đổi role");
+                lore.add("§aCó thể đổi miễn phí!");
+            } else if (roleManager.canChangeRole(player)) {
+                long cost = plugin.getConfigManager().getRoleChangeCost();
+                lore.add("§7Click để đổi role");
+                lore.add("§7Cost: §e" + cost + " coins");
+                lore.add("§7Hoặc đợi: §e" + roleManager.getTimeUntilCanChange(player));
+            } else {
+                lore.add("§7Click để xem thông tin");
+                lore.add("§cChưa thể đổi role!");
+                lore.add("§7Cần đợi: §e" + roleManager.getTimeUntilCanChange(player));
             }
-            inv.setItem(33, changeRoleButton);
+            changeMeta.setLore(lore);
+            changeRoleButton.setItemMeta(changeMeta);
         }
+        inv.setItem(33, changeRoleButton);
 
         // Close button
         ItemStack close = new ItemStack(Material.BARRIER);

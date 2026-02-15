@@ -18,22 +18,11 @@ public class RoleTabCompleter implements TabCompleter {
 
         if (args.length == 1) {
             // Subcommands
-            List<String> subcommands = Arrays.asList("select", "info", "change");
+            List<String> subcommands = Arrays.asList("select", "info", "change", "titles");
             String input = args[0].toLowerCase();
             for (String sub : subcommands) {
                 if (sub.startsWith(input)) {
                     completions.add(sub);
-                }
-            }
-        } else if (args.length == 2) {
-            String subCommand = args[0].toLowerCase();
-            if (subCommand.equals("select") || subCommand.equals("change")) {
-                // Suggest roles
-                String input = args[1].toUpperCase();
-                for (Role role : Role.values()) {
-                    if (role.name().startsWith(input)) {
-                        completions.add(role.name().toLowerCase());
-                    }
                 }
             }
         }

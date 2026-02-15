@@ -45,6 +45,7 @@ permissions:
       rolemmo.admin.giveskillpoints: true
       rolemmo.admin.setrole: true
       rolemmo.admin.takeskill: true
+      rolemmo.admin.giveexp: true
   
   rolemmo.admin.givelevel:
     description: Give level to player
@@ -60,4 +61,8 @@ permissions:
   
   rolemmo.admin.takeskill:
     description: Take skill from player
+    default: op
+  
+  rolemmo.admin.giveexp:
+    description: Give experience to player
     default: op

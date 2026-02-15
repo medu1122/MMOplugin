@@ -129,8 +129,69 @@ public class RoleAdminCommand implements CommandExecutor {
                 }
             }
 
+            case "takeskill" -> {
+                if (args.length < 3) {
+                    sender.sendMessage("§cSử dụng: /roleadmin takeskill <player> <skillId>");
+                    return true;
+                }
+
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
+                    return true;
+                }
+
+                String skillId = args[2];
+                me.skibidi.rolemmo.util.SkillItemUtil.removeSkillItem(target, skillId);
+                
+                sender.sendMessage("§aĐã remove skill item " + skillId + " khỏi " + target.getName());
+                target.sendMessage("§cAdmin đã remove skill item " + skillId + " của bạn!");
+            }
+
+            case "giveexp" -> {
+                if (args.length < 4) {
+                    sender.sendMessage("§cSử dụng: /roleadmin giveexp <player> <role> <amount>");
+                    return true;
+                }
+
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
+                    return true;
+                }
+
+                try {
+                    Role role = Role.valueOf(args[2].toUpperCase());
+                    int exp = Integer.parseInt(args[3]);
+
+                    if (exp < 0) {
+                        sender.sendMessage("§cExp phải >= 0!");
+                        return true;
+                    }
+
+                    if (plugin.getRoleManager().getPlayerRole(target) == null) {
+                        sender.sendMessage("§cPlayer chưa có role! Hãy cho họ chọn role trước.");
+                        return true;
+                    }
+
+                    plugin.getLevelManager().addExperience(target, role, exp);
+                    
+                    sender.sendMessage("§aĐã give " + exp + " exp cho role " + role.getDisplayName() + " của " + target.getName());
+                    target.sendMessage("§aAdmin đã give " + exp + " exp cho role " + role.getDisplayName() + " của bạn!");
+                } catch (IllegalArgumentException e) {
+                    sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§cAmount phải là số!");
+                }
+            }
+
             default -> {
                 sender.sendMessage("§cLệnh không hợp lệ!");
+                sender.sendMessage("§e/roleadmin givelevel <player> <role> <level>");
+                sender.sendMessage("§e/roleadmin giveskillpoints <player> <amount>");
+                sender.sendMessage("§e/roleadmin setrole <player> <role>");
+                sender.sendMessage("§e/roleadmin takeskill <player> <skillId>");
+                sender.sendMessage("§e/roleadmin giveexp <player> <role> <amount>");
             }
         }
 
