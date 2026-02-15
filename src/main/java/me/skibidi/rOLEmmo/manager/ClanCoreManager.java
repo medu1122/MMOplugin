@@ -74,6 +74,8 @@ public class ClanCoreManager {
      */
     public boolean areSameTeam(Player player1, Player player2) {
         if (!isEnabled()) return false;
+        if (player1 == null || player2 == null) return false;
+        if (!player1.isOnline() || !player2.isOnline()) return false;
 
         try {
             Boolean result = (Boolean) teamManager.getClass()
@@ -82,7 +84,7 @@ public class ClanCoreManager {
             return result != null && result;
         } catch (Exception e) {
             logger.warning("Failed to check same team: " + e.getMessage());
-            return false;
+            return false; // Return false on error để an toàn (không block damage)
         }
     }
 
@@ -91,6 +93,7 @@ public class ClanCoreManager {
      */
     public boolean isInTeam(Player player) {
         if (!isEnabled()) return false;
+        if (player == null || !player.isOnline()) return false;
 
         try {
             Boolean result = (Boolean) teamManager.getClass()

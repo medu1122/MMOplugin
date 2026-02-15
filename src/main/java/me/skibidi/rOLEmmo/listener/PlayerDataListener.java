@@ -54,9 +54,25 @@ public class PlayerDataListener implements Listener {
                         var skills = skillManager.getSkills(currentRole);
                         if (!skills.isEmpty()) {
                             var firstSkill = skills.get(0);
-                            int skillLevel = skillManager.getPlayerSkillLevel(player, firstSkill.getId());
-                            if (skillLevel > 0) {
-                                skillManager.selectSkill(player, firstSkill.getId());
+                            if (firstSkill != null) {
+                                int skillLevel = skillManager.getPlayerSkillLevel(player, firstSkill.getId());
+                                if (skillLevel > 0) {
+                                    // Auto-select skill đầu tiên khi join (bypass cooldown cho lần đầu)
+                                    try {
+                                        var repo = new me.skibidi.rolemmo.storage.repository.PlayerRoleRepository(plugin.getDatabaseManager());
+                                        var data = repo.getPlayerRole(player.getUniqueId());
+                                        if (data != null) {
+                                            data.setSelectedSkillId(firstSkill.getId());
+                                            data.setLastSkillChange(System.currentTimeMillis());
+                                            repo.savePlayerRole(data);
+                                            
+                                            // Give skill item
+                                            me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, firstSkill, skillLevel);
+                                        }
+                                    } catch (Exception e) {
+                                        plugin.getLogger().warning("Error auto-selecting skill: " + e.getMessage());
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -77,14 +93,16 @@ public class PlayerDataListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        if (player == null) return;
         
         // Clear cooldowns
         if (skillManager != null) {
             skillManager.clearCooldowns(player);
         }
         
-        // Note: ActionbarListener sẽ tự động clear khi player quit
-        // Không cần tạo instance mới ở đây
+        // Clear actionbar message (nếu ActionbarListener có method)
+        // Note: ActionbarListener sẽ tự động clear khi player quit trong task
+        // Nhưng để chắc chắn, có thể clear ở đây nếu cần
         
         // Data sẽ được save tự động khi có thay đổi
         plugin.getLogger().fine("Player " + player.getName() + " quit - data saved");

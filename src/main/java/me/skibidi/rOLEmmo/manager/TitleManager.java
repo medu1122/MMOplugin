@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -24,8 +25,8 @@ public class TitleManager {
     private final TitleRepository titleRepository;
     private final Logger logger;
     
-    // Cache titles từ config để tránh load lại nhiều lần
-    private final Map<Role, Map<Integer, Title>> titlesCache = new HashMap<>();
+    // Cache titles từ config để tránh load lại nhiều lần (sử dụng ConcurrentHashMap để thread-safe)
+    private final Map<Role, Map<Integer, Title>> titlesCache = new ConcurrentHashMap<>();
 
     public TitleManager(ROLEmmo plugin) {
         this.plugin = plugin;
@@ -168,6 +169,11 @@ public class TitleManager {
             return;
         }
 
+        // Check player online trước khi unlock titles
+        if (!player.isOnline()) {
+            return;
+        }
+
         Map<Integer, Title> roleTitles = titlesCache.get(role);
         if (roleTitles == null) {
             return;
@@ -182,7 +188,10 @@ public class TitleManager {
             if (newLevel >= requiredLevel) {
                 try {
                     if (!titleRepository.hasTitle(player.getUniqueId(), title.getId())) {
-                        unlockTitle(player, title);
+                        // Double check player online trước khi unlock
+                        if (player.isOnline()) {
+                            unlockTitle(player, title);
+                        }
                     }
                 } catch (SQLException e) {
                     logger.warning("Failed to check title unlock for " + title.getId() + ": " + e.getMessage());
@@ -199,11 +208,18 @@ public class TitleManager {
             return false;
         }
 
+        // Check player online
+        if (!player.isOnline()) {
+            return false;
+        }
+
         // Nếu title là null, remove active title
         if (title == null) {
             try {
                 titleRepository.removeActiveTitle(player.getUniqueId());
-                player.sendMessage("§aĐã gỡ danh hiệu active!");
+                if (player.isOnline()) {
+                    player.sendMessage("§aĐã gỡ danh hiệu active!");
+                }
                 return true;
             } catch (SQLException e) {
                 logger.severe("Failed to remove active title for player " + player.getName() + ": " + e.getMessage());
@@ -214,20 +230,26 @@ public class TitleManager {
         // Kiểm tra xem player đã unlock title này chưa
         try {
             if (!titleRepository.hasTitle(player.getUniqueId(), title.getId())) {
-                player.sendMessage("§cBạn chưa unlock danh hiệu này!");
+                if (player.isOnline()) {
+                    player.sendMessage("§cBạn chưa unlock danh hiệu này!");
+                }
                 return false;
             }
 
             // Set active title
             titleRepository.setActiveTitle(player.getUniqueId(), title.getId());
-            player.sendMessage("§aĐã set danh hiệu active: " + title.getDisplayName());
+            if (player.isOnline()) {
+                player.sendMessage("§aĐã set danh hiệu active: " + title.getDisplayName());
+            }
             
             logger.info("Player " + player.getName() + " set active title: " + title.getId());
             return true;
         } catch (SQLException e) {
             logger.severe("Failed to set active title for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi khi set danh hiệu! Vui lòng thử lại sau.");
+            if (player.isOnline()) {
+                player.sendMessage("§cLỗi khi set danh hiệu! Vui lòng thử lại sau.");
+            }
             return false;
         }
     }

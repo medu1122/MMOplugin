@@ -29,6 +29,11 @@ public class ExperienceListener implements Listener {
     public void onPlayerExpChange(PlayerExpChangeEvent event) {
         Player player = event.getPlayer();
         
+        // Check player online
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        
         // Kiểm tra player có role không
         Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null) {
@@ -42,7 +47,7 @@ public class ExperienceListener implements Listener {
         }
 
         // Convert và thêm exp cho role
-        // Note: Exp change event có thể trigger nhiều lần, nhưng LevelManager sẽ xử lý đúng
+        // Note: Exp change event có thể trigger nhiều lần, nhưng LevelManager sẽ xử lý đúng với synchronized
         levelManager.convertAndAddExperience(player, currentRole, expChange);
     }
 }

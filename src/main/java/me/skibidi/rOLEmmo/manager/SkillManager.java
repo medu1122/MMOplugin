@@ -23,10 +23,11 @@ public class SkillManager {
     private final ConfigManager configManager;
     private final SkillRepository skillRepository;
     private final RoleManager roleManager;
+    private final me.skibidi.rolemmo.storage.repository.PlayerRoleRepository playerRoleRepository;
     private final Logger logger;
 
-    // Cache skills
-    private final Map<Role, List<Skill>> skillsByRole = new HashMap<>();
+    // Cache skills (sử dụng ConcurrentHashMap để thread-safe, mặc dù chỉ write trong constructor)
+    private final Map<Role, List<Skill>> skillsByRole = new ConcurrentHashMap<>();
     
     // Cooldown tracking (UUID -> skillId -> cooldown end time)
     private final Map<UUID, Map<String, Long>> cooldowns = new ConcurrentHashMap<>();
@@ -36,6 +37,7 @@ public class SkillManager {
         this.configManager = plugin.getConfigManager();
         this.skillRepository = new SkillRepository(plugin.getDatabaseManager());
         this.roleManager = roleManager;
+        this.playerRoleRepository = new me.skibidi.rolemmo.storage.repository.PlayerRoleRepository(plugin.getDatabaseManager());
         this.logger = plugin.getLogger();
         initializeSkills();
     }
@@ -93,8 +95,9 @@ public class SkillManager {
 
     /**
      * Upgrade skill cho player
+     * Synchronized để tránh race condition khi upgrade cùng lúc
      */
-    public boolean upgradeSkill(Player player, String skillId) {
+    public synchronized boolean upgradeSkill(Player player, String skillId) {
         if (player == null || skillId == null) {
             return false;
         }
@@ -121,12 +124,26 @@ public class SkillManager {
         }
 
         try {
+            // Double check skill points trước khi upgrade (tránh race condition)
+            // Note: addSkillPoints đã synchronized, nhưng vẫn double check để đảm bảo
+            int actualCurrentPoints = roleManager.getSkillPoints(player);
+            if (actualCurrentPoints < requiredPoints) {
+                player.sendMessage(plugin.getConfigManager().getMessage("skill_not_enough_points"));
+                return false;
+            }
+            
             // Upgrade skill
             int newLevel = currentLevel + 1;
             skillRepository.setSkillLevel(player.getUniqueId(), skillId, newLevel);
 
-            // Trừ skill points
+            // Trừ skill points (sử dụng addSkillPoints để đảm bảo consistency và validation)
+            // addSkillPoints đã synchronized, nên sẽ thread-safe
             roleManager.addSkillPoints(player, -requiredPoints);
+
+            // Update skill item nếu đang được sử dụng
+            if (player.isOnline()) {
+                me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, skill, newLevel);
+            }
 
             player.sendMessage(plugin.getConfigManager().getMessage("skill_upgraded")
                     .replace("{skill}", skill.getName())
@@ -150,8 +167,20 @@ public class SkillManager {
             return false;
         }
 
+        // Check player online
+        if (!player.isOnline()) {
+            return false;
+        }
+
         Skill skill = getSkill(skillId);
         if (skill == null) {
+            return false;
+        }
+
+        // Check role match (quan trọng: đảm bảo skill thuộc role hiện tại)
+        Role currentRole = roleManager.getPlayerRole(player);
+        if (currentRole == null || skill.getRole() != currentRole) {
+            player.sendMessage("§cSkill này không thuộc role hiện tại của bạn!");
             return false;
         }
 
@@ -173,14 +202,17 @@ public class SkillManager {
         try {
             success = skill.execute(player, level);
             if (success) {
-                // Set cooldown
+                // Set cooldown (check null cho levelInfo)
                 Skill.SkillLevelInfo levelInfo = skill.getLevelInfo(level);
-                setCooldown(player, skillId, levelInfo.getCooldown());
+                if (levelInfo != null) {
+                    setCooldown(player, skillId, levelInfo.getCooldown());
+                } else {
+                    logger.warning("LevelInfo is null for skill " + skillId + " level " + level);
+                }
             }
         } catch (Exception e) {
-            logger.severe("Error executing skill " + skillId + " for player " + player.getName() + ": " + e.getMessage());
-            e.printStackTrace();
-            player.sendMessage("§cLỗi khi sử dụng skill! Vui lòng thử lại sau.");
+            // Sử dụng ErrorHandler để xử lý lỗi nhất quán
+            me.skibidi.rolemmo.util.ErrorHandler.handleSkillError(player, skillId, e);
             return false;
         }
 
@@ -191,6 +223,10 @@ public class SkillManager {
      * Check xem skill có đang cooldown không
      */
     public boolean isOnCooldown(Player player, String skillId) {
+        if (player == null || skillId == null) {
+            return false;
+        }
+
         Map<String, Long> playerCooldowns = cooldowns.get(player.getUniqueId());
         if (playerCooldowns == null) {
             return false;
@@ -201,13 +237,27 @@ public class SkillManager {
             return false;
         }
 
-        return System.currentTimeMillis() < cooldownEnd;
+        // Clean up expired cooldowns
+        if (System.currentTimeMillis() >= cooldownEnd) {
+            playerCooldowns.remove(skillId);
+            // Clean up empty map để tránh memory leak
+            if (playerCooldowns.isEmpty()) {
+                cooldowns.remove(player.getUniqueId());
+            }
+            return false;
+        }
+
+        return true;
     }
 
     /**
      * Lấy thời gian cooldown còn lại (seconds)
      */
     public long getCooldownRemaining(Player player, String skillId) {
+        if (player == null || skillId == null) {
+            return 0;
+        }
+
         Map<String, Long> playerCooldowns = cooldowns.get(player.getUniqueId());
         if (playerCooldowns == null) {
             return 0;
@@ -219,7 +269,17 @@ public class SkillManager {
         }
 
         long remaining = (cooldownEnd - System.currentTimeMillis()) / 1000;
-        return Math.max(0, remaining);
+        if (remaining <= 0) {
+            // Clean up expired cooldown
+            playerCooldowns.remove(skillId);
+            // Clean up empty map để tránh memory leak
+            if (playerCooldowns.isEmpty()) {
+                cooldowns.remove(player.getUniqueId());
+            }
+            return 0;
+        }
+
+        return remaining;
     }
 
     /**
@@ -254,8 +314,7 @@ public class SkillManager {
      */
     public String getSelectedSkillId(Player player) {
         try {
-            var repo = new me.skibidi.rolemmo.storage.repository.PlayerRoleRepository(plugin.getDatabaseManager());
-            var data = repo.getPlayerRole(player.getUniqueId());
+            var data = playerRoleRepository.getPlayerRole(player.getUniqueId());
             return data != null ? data.getSelectedSkillId() : null;
         } catch (SQLException e) {
             logger.warning("Failed to get selected skill: " + e.getMessage());
@@ -268,8 +327,7 @@ public class SkillManager {
      */
     public long getLastSkillChange(Player player) {
         try {
-            var repo = new me.skibidi.rolemmo.storage.repository.PlayerRoleRepository(plugin.getDatabaseManager());
-            var data = repo.getPlayerRole(player.getUniqueId());
+            var data = playerRoleRepository.getPlayerRole(player.getUniqueId());
             return data != null ? data.getLastSkillChange() : 0;
         } catch (SQLException e) {
             logger.warning("Failed to get last skill change: " + e.getMessage());
@@ -279,9 +337,15 @@ public class SkillManager {
 
     /**
      * Chọn skill cho player (cooldown 30 phút)
+     * Synchronized để tránh race condition khi chọn skill cùng lúc
      */
-    public boolean selectSkill(Player player, String skillId) {
+    public synchronized boolean selectSkill(Player player, String skillId) {
         if (player == null || skillId == null) {
+            return false;
+        }
+
+        // Check player online
+        if (!player.isOnline()) {
             return false;
         }
 
@@ -318,16 +382,17 @@ public class SkillManager {
         }
 
         try {
-            var repo = new me.skibidi.rolemmo.storage.repository.PlayerRoleRepository(plugin.getDatabaseManager());
-            var data = repo.getPlayerRole(player.getUniqueId());
+            var data = playerRoleRepository.getPlayerRole(player.getUniqueId());
             if (data != null) {
                 data.setSelectedSkillId(skillId);
                 data.setLastSkillChange(System.currentTimeMillis());
-                repo.savePlayerRole(data);
+                playerRoleRepository.savePlayerRole(data);
 
-                // Update skill item
-                me.skibidi.rolemmo.util.SkillItemUtil.removeAllSkillItems(player, currentRole);
-                me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, skill, skillLevel);
+                // Update skill item (check player online trước)
+                if (player.isOnline()) {
+                    me.skibidi.rolemmo.util.SkillItemUtil.removeAllSkillItems(player, currentRole);
+                    me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, skill, skillLevel);
+                }
 
                 player.sendMessage("§aĐã chọn skill: §e" + skill.getName());
                 logger.info("Player " + player.getName() + " selected skill: " + skillId);

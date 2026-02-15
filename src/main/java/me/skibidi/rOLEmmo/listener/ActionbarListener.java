@@ -19,6 +19,7 @@ public class ActionbarListener {
     private final ROLEmmo plugin;
     private final SkillManager skillManager;
     private final Map<UUID, String> lastActionbarMessage = new HashMap<>();
+    private BukkitRunnable actionbarTask; // Store task để có thể cancel khi plugin disable
 
     public ActionbarListener(ROLEmmo plugin) {
         this.plugin = plugin;
@@ -30,23 +31,47 @@ public class ActionbarListener {
      * Bắt đầu task để update actionbar mỗi tick
      */
     private void startActionbarTask() {
-        new BukkitRunnable() {
+        actionbarTask = new BukkitRunnable() {
             @Override
             public void run() {
+                if (plugin == null || !plugin.isEnabled()) {
+                    cancel();
+                    return;
+                }
+                
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
-                    updateActionbar(player);
+                    if (player != null && player.isOnline()) {
+                        updateActionbar(player);
+                    }
                 }
             }
-        }.runTaskTimer(plugin, 0L, 20L); // Update mỗi giây (20 ticks)
+        };
+        actionbarTask.runTaskTimer(plugin, 0L, 20L); // Update mỗi giây (20 ticks)
+    }
+
+    /**
+     * Cancel task khi plugin disable (để tránh memory leak)
+     */
+    public void cancelTask() {
+        if (actionbarTask != null && !actionbarTask.isCancelled()) {
+            actionbarTask.cancel();
+        }
     }
 
     /**
      * Update actionbar cho player
      */
     private void updateActionbar(Player player) {
-        var roleManager = plugin.getRoleManager();
-        Role currentRole = roleManager.getPlayerRole(player);
+        if (player == null || !player.isOnline()) {
+            return;
+        }
         
+        var roleManager = plugin.getRoleManager();
+        if (roleManager == null) {
+            return;
+        }
+        
+        Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null) {
             return;
         }

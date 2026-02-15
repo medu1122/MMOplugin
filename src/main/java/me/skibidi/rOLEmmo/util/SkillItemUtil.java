@@ -20,8 +20,45 @@ import java.util.List;
  */
 public class SkillItemUtil {
 
-    private static final NamespacedKey SKILL_ID_KEY = new NamespacedKey(ROLEmmo.getInstance(), "skill_id");
-    private static final NamespacedKey SKILL_ITEM_KEY = new NamespacedKey(ROLEmmo.getInstance(), "is_skill_item");
+    private static NamespacedKey SKILL_ID_KEY;
+    private static NamespacedKey SKILL_ITEM_KEY;
+    
+    /**
+     * Initialize keys khi plugin đã enable
+     */
+    public static void initializeKeys() {
+        ROLEmmo plugin = ROLEmmo.getInstance();
+        if (plugin != null && plugin.isEnabled()) {
+            SKILL_ID_KEY = new NamespacedKey(plugin, "skill_id");
+            SKILL_ITEM_KEY = new NamespacedKey(plugin, "is_skill_item");
+        }
+    }
+    
+    /**
+     * Get SKILL_ID_KEY với lazy initialization
+     */
+    private static NamespacedKey getSkillIdKey() {
+        if (SKILL_ID_KEY == null) {
+            initializeKeys();
+        }
+        if (SKILL_ID_KEY == null) {
+            throw new IllegalStateException("SkillItemUtil keys not initialized. Plugin may not be enabled.");
+        }
+        return SKILL_ID_KEY;
+    }
+    
+    /**
+     * Get SKILL_ITEM_KEY với lazy initialization
+     */
+    private static NamespacedKey getSkillItemKey() {
+        if (SKILL_ITEM_KEY == null) {
+            initializeKeys();
+        }
+        if (SKILL_ITEM_KEY == null) {
+            throw new IllegalStateException("SkillItemUtil keys not initialized. Plugin may not be enabled.");
+        }
+        return SKILL_ITEM_KEY;
+    }
 
     /**
      * Tạo skill item cho skill
@@ -39,13 +76,17 @@ public class SkillItemUtil {
             lore.add("§7Level: §e" + level);
             lore.add("");
             lore.add("§eChuột phải để sử dụng!");
-            lore.add("§7Cooldown: §e" + skill.getLevelInfo(level).getCooldown() + "s");
+            
+            Skill.SkillLevelInfo levelInfo = skill.getLevelInfo(level);
+            if (levelInfo != null) {
+                lore.add("§7Cooldown: §e" + levelInfo.getCooldown() + "s");
+            }
             meta.setLore(lore);
 
             // Set persistent data để identify skill item
             PersistentDataContainer container = meta.getPersistentDataContainer();
-            container.set(SKILL_ITEM_KEY, PersistentDataType.BOOLEAN, true);
-            container.set(SKILL_ID_KEY, PersistentDataType.STRING, skill.getId());
+            container.set(getSkillItemKey(), PersistentDataType.BOOLEAN, true);
+            container.set(getSkillIdKey(), PersistentDataType.STRING, skill.getId());
 
             item.setItemMeta(meta);
         }
@@ -67,7 +108,7 @@ public class SkillItemUtil {
         }
 
         PersistentDataContainer container = meta.getPersistentDataContainer();
-        Boolean isSkillItem = container.get(SKILL_ITEM_KEY, PersistentDataType.BOOLEAN);
+        Boolean isSkillItem = container.get(getSkillItemKey(), PersistentDataType.BOOLEAN);
         return isSkillItem != null && isSkillItem;
     }
 
@@ -85,7 +126,7 @@ public class SkillItemUtil {
         }
 
         PersistentDataContainer container = meta.getPersistentDataContainer();
-        return container.get(SKILL_ID_KEY, PersistentDataType.STRING);
+        return container.get(getSkillIdKey(), PersistentDataType.STRING);
     }
 
     /**
@@ -163,19 +204,29 @@ public class SkillItemUtil {
             return;
         }
 
-        ROLEmmo plugin = ROLEmmo.getInstance();
-        if (plugin == null) {
-            return;
-        }
+        try {
+            ROLEmmo plugin = ROLEmmo.getInstance();
+            if (plugin == null || !plugin.isEnabled()) {
+                return;
+            }
 
-        var skillManager = plugin.getSkillManager();
-        if (skillManager == null) {
-            return;
-        }
+            var skillManager = plugin.getSkillManager();
+            if (skillManager == null) {
+                return;
+            }
 
-        List<Skill> skills = skillManager.getSkills(role);
-        for (Skill skill : skills) {
-            removeSkillItem(player, skill.getId());
+            List<Skill> skills = skillManager.getSkills(role);
+            if (skills == null) {
+                return;
+            }
+            
+            for (Skill skill : skills) {
+                if (skill != null) {
+                    removeSkillItem(player, skill.getId());
+                }
+            }
+        } catch (Exception e) {
+            // Plugin có thể đã disable, ignore
         }
     }
 }

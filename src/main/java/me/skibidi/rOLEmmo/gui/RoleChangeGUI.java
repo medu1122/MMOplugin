@@ -3,6 +3,7 @@ package me.skibidi.rolemmo.gui;
 import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.RoleManager;
 import me.skibidi.rolemmo.model.Role;
+import me.skibidi.rolemmo.util.GUIUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -36,91 +37,117 @@ public class RoleChangeGUI {
         long cost = plugin.getConfigManager().getRoleChangeCost();
         String timeUntilCanChange = roleManager.getTimeUntilCanChange(player);
 
-        Inventory inv = Bukkit.createInventory(null, 54, "§6Đổi Role");
+        Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("🔄 ĐỔI ROLE", GUIUtil.GRADIENT_PURPLE));
 
-        // Info item ở center
+        // Info item ở center với font lớn
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
         if (infoMeta != null) {
-            infoMeta.setDisplayName("§6Thông Tin Đổi Role");
+            infoMeta.setDisplayName(GUIUtil.createLargeTitle("📖 THÔNG TIN", GUIUtil.GRADIENT_BLUE));
             List<String> lore = new ArrayList<>();
-            lore.add("§7Role hiện tại: " + currentRole.getFullDisplayName());
-            lore.add("");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            String[] roleGradient = getGradientForRole(currentRole);
+            lore.add(GUIUtil.COLOR_INFO + "§lRole hiện tại: " + GUIUtil.gradientText(currentRole.getFullDisplayName(), roleGradient));
+            lore.add(" ");
             if (canChangeForFree) {
-                lore.add("§aCó thể đổi role miễn phí!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Có thể đổi role miễn phí!");
             } else if (canChange) {
-                lore.add("§7Cost để đổi ngay: §e" + cost + " coins");
-                lore.add("§7Hoặc đợi: §e" + timeUntilCanChange);
+                lore.add(GUIUtil.COLOR_WARNING + "§lCost để đổi ngay: " + GUIUtil.gradientText(cost + " coins", GUIUtil.GRADIENT_GOLD));
+                lore.add(GUIUtil.COLOR_MUTED + "Hoặc đợi: " + GUIUtil.COLOR_INFO + timeUntilCanChange);
             } else {
-                lore.add("§cChưa thể đổi role!");
-                lore.add("§7Cần đợi: §e" + timeUntilCanChange);
-                lore.add("§7Hoặc trả: §e" + cost + " coins");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Chưa thể đổi role!");
+                lore.add(GUIUtil.COLOR_MUTED + "Cần đợi: " + GUIUtil.COLOR_INFO + timeUntilCanChange);
+                lore.add(GUIUtil.COLOR_MUTED + "Hoặc trả: " + GUIUtil.gradientText(cost + " coins", GUIUtil.GRADIENT_GOLD));
             }
-            lore.add("");
-            lore.add("§eChọn role bên dưới để đổi!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Chọn role bên dưới để đổi!");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
         }
         inv.setItem(22, infoItem);
 
-        // TANKER role
+        // TANKER role với font lớn
         ItemStack tankerItem = new ItemStack(Material.SHIELD);
         ItemMeta tankerMeta = tankerItem.getItemMeta();
         if (tankerMeta != null) {
             boolean isCurrent = currentRole == Role.TANKER;
-            tankerMeta.setDisplayName(isCurrent ? "§6§lTANKER §7(Hiện tại)" : "§6§lTANKER");
+            String displayName = isCurrent ? 
+                    GUIUtil.createLargeTitle("🛡️ TANKER", GUIUtil.GRADIENT_BLUE) + GUIUtil.COLOR_MUTED + " §l(Hiện tại)" :
+                    GUIUtil.createLargeTitle("🛡️ TANKER", GUIUtil.GRADIENT_BLUE);
+            tankerMeta.setDisplayName(displayName);
             List<String> lore = new ArrayList<>();
-            lore.add("§7Hệ Hộ Thể / Kim Cang");
-            lore.add("");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§lHệ Hộ Thể / Kim Cang");
+            lore.add(" ");
             if (isCurrent) {
-                lore.add("§cĐây là role hiện tại của bạn!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Đây là role hiện tại của bạn!");
             } else if (canChange || canChangeForFree) {
-                lore.add("§eClick để đổi sang role này!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để đổi sang role này!");
             } else {
-                lore.add("§cChưa thể đổi role!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Chưa thể đổi role!");
             }
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             tankerMeta.setLore(lore);
             tankerItem.setItemMeta(tankerMeta);
         }
         inv.setItem(20, tankerItem);
 
-        // DPS role
+        // DPS role với font lớn
         ItemStack dpsItem = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta dpsMeta = dpsItem.getItemMeta();
         if (dpsMeta != null) {
             boolean isCurrent = currentRole == Role.DPS;
-            dpsMeta.setDisplayName(isCurrent ? "§c§lDPS §7(Hiện tại)" : "§c§lDPS");
+            String displayName = isCurrent ? 
+                    GUIUtil.createLargeTitle("⚔️ DPS", GUIUtil.GRADIENT_RED) + GUIUtil.COLOR_MUTED + " §l(Hiện tại)" :
+                    GUIUtil.createLargeTitle("⚔️ DPS", GUIUtil.GRADIENT_RED);
+            dpsMeta.setDisplayName(displayName);
             List<String> lore = new ArrayList<>();
-            lore.add("§7Hệ Sát Phạt / Chiến Đạo");
-            lore.add("");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_ERROR + "§lHệ Sát Phạt / Chiến Đạo");
+            lore.add(" ");
             if (isCurrent) {
-                lore.add("§cĐây là role hiện tại của bạn!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Đây là role hiện tại của bạn!");
             } else if (canChange || canChangeForFree) {
-                lore.add("§eClick để đổi sang role này!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để đổi sang role này!");
             } else {
-                lore.add("§cChưa thể đổi role!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Chưa thể đổi role!");
             }
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             dpsMeta.setLore(lore);
             dpsItem.setItemMeta(dpsMeta);
         }
         inv.setItem(22, dpsItem); // Override info item
 
-        // HEALER role
+        // HEALER role với font lớn
         ItemStack healerItem = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta healerMeta = healerItem.getItemMeta();
         if (healerMeta != null) {
             boolean isCurrent = currentRole == Role.HEALER;
-            healerMeta.setDisplayName(isCurrent ? "§a§lHEALER §7(Hiện tại)" : "§a§lHEALER");
+            String displayName = isCurrent ? 
+                    GUIUtil.createLargeTitle("✝️ HEALER", GUIUtil.GRADIENT_GREEN) + GUIUtil.COLOR_MUTED + " §l(Hiện tại)" :
+                    GUIUtil.createLargeTitle("✝️ HEALER", GUIUtil.GRADIENT_GREEN);
+            healerMeta.setDisplayName(displayName);
             List<String> lore = new ArrayList<>();
-            lore.add("§7Hệ Linh Lực / Thánh Đạo");
-            lore.add("");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§lHệ Linh Lực / Thánh Đạo");
+            lore.add(" ");
             if (isCurrent) {
-                lore.add("§cĐây là role hiện tại của bạn!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Đây là role hiện tại của bạn!");
             } else if (canChange || canChangeForFree) {
-                lore.add("§eClick để đổi sang role này!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để đổi sang role này!");
             } else {
-                lore.add("§cChưa thể đổi role!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Chưa thể đổi role!");
             }
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             healerMeta.setLore(lore);
             healerItem.setItemMeta(healerMeta);
         }
@@ -144,13 +171,8 @@ public class RoleChangeGUI {
         }
         inv.setItem(49, close);
 
-        // Glass panes decoration
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta glassMeta = glass.getItemMeta();
-        if (glassMeta != null) {
-            glassMeta.setDisplayName(" ");
-            glass.setItemMeta(glassMeta);
-        }
+        // Glass panes decoration với màu sắc đa dạng
+        ItemStack glass = GUIUtil.createGlassPane("gray");
 
         // Fill empty slots
         for (int i = 0; i < 54; i++) {
@@ -162,5 +184,16 @@ public class RoleChangeGUI {
         }
 
         player.openInventory(inv);
+    }
+
+    /**
+     * Lấy gradient colors cho role
+     */
+    private static String[] getGradientForRole(Role role) {
+        return switch (role) {
+            case TANKER -> GUIUtil.GRADIENT_BLUE;
+            case DPS -> GUIUtil.GRADIENT_RED;
+            case HEALER -> GUIUtil.GRADIENT_GREEN;
+        };
     }
 }

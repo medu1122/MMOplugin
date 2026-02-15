@@ -12,7 +12,12 @@ import java.util.logging.Logger;
 public class ErrorHandler {
 
     private static Logger getLogger() {
-        return ROLEmmo.getInstance().getLogger();
+        ROLEmmo instance = ROLEmmo.getInstance();
+        if (instance != null) {
+            return instance.getLogger();
+        }
+        // Fallback logger nếu plugin chưa enable
+        return java.util.logging.Logger.getLogger("ROLEmmo");
     }
 
     /**
@@ -65,6 +70,10 @@ public class ErrorHandler {
      * Handle skill execution error
      */
     public static void handleSkillError(Player player, String skillId, Throwable throwable) {
+        if (throwable == null) {
+            logWarning("handleSkillError called with null throwable for skill " + skillId);
+            return;
+        }
         logError("Error executing skill " + skillId + " for player " + 
                 (player != null ? player.getName() : "null") + ": " + throwable.getMessage(), throwable);
         sendError(player, "Lỗi khi sử dụng skill! Vui lòng thử lại sau.");

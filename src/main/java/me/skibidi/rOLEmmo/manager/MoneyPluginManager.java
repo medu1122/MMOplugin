@@ -56,11 +56,14 @@ public class MoneyPluginManager {
      */
     public long getCoins(Player player) {
         if (!isEnabled()) return 0;
+        if (player == null || !player.isOnline()) {
+            return 0;
+        }
 
         try {
             return (Long) coinsManager.getClass().getMethod("getCoins", Player.class).invoke(coinsManager, player);
         } catch (Exception e) {
-            logger.warning("Failed to get coins for player " + player.getName() + ": " + e.getMessage());
+            logger.warning("Failed to get coins for player " + (player != null ? player.getName() : "null") + ": " + e.getMessage());
             return 0;
         }
     }
@@ -84,6 +87,11 @@ public class MoneyPluginManager {
      */
     public boolean hasEnough(Player player, long amount) {
         if (!isEnabled()) return false;
+        if (player == null || !player.isOnline()) return false;
+        if (amount < 0) {
+            logger.warning("Invalid amount for hasEnough: " + amount);
+            return false;
+        }
         return getCoins(player) >= amount;
     }
 
@@ -93,6 +101,14 @@ public class MoneyPluginManager {
     public boolean removeCoins(Player player, long amount) {
         if (!isEnabled()) {
             logger.warning("Cannot remove coins: MoneyPlugin not available");
+            return false;
+        }
+        if (player == null || !player.isOnline()) {
+            logger.warning("Cannot remove coins: Player is null or offline");
+            return false;
+        }
+        if (amount < 0) {
+            logger.warning("Cannot remove negative coins: " + amount);
             return false;
         }
 
@@ -113,6 +129,14 @@ public class MoneyPluginManager {
     public boolean addCoins(Player player, long amount) {
         if (!isEnabled()) {
             logger.warning("Cannot add coins: MoneyPlugin not available");
+            return false;
+        }
+        if (player == null || !player.isOnline()) {
+            logger.warning("Cannot add coins: Player is null or offline");
+            return false;
+        }
+        if (amount < 0) {
+            logger.warning("Cannot add negative coins: " + amount);
             return false;
         }
 

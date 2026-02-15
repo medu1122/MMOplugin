@@ -10,8 +10,10 @@ import me.skibidi.rolemmo.model.Title;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
@@ -28,7 +30,7 @@ public class GUIListener implements Listener {
     private final RoleManager roleManager;
     private final TitleManager titleManager;
     
-    // Track page cho Title GUI
+    // Track page cho Title GUI (auto-cleanup khi player quit)
     private final Map<UUID, Integer> titlePages = new HashMap<>();
 
     public GUIListener(ROLEmmo plugin) {
@@ -40,48 +42,55 @@ public class GUIListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!player.isOnline()) return; // Player đã offline
 
         String title = event.getView().getTitle();
+        if (title == null) return;
+        
         ItemStack clicked = event.getCurrentItem();
 
-        // Cancel tất cả clicks trong GUI
-        if (title.startsWith("§6Role Info") || 
-            title.startsWith("§6Danh Hiệu") ||
-            title.startsWith("§6Skills") ||
-            title.startsWith("§6Upgrade:") ||
-            title.startsWith("§6Chọn Skill") ||
-            title.startsWith("§6Chọn Role") ||
-            title.startsWith("§6Đổi Role")) {
+        // Cancel tất cả clicks trong GUI - check với cả formatted titles
+        String strippedTitle = org.bukkit.ChatColor.stripColor(title);
+        boolean isRoleInfoGUI = strippedTitle.contains("ROLE INFO") || title.contains("§6Role Info");
+        boolean isTitleGUI = strippedTitle.contains("DANH HIỆU") || title.contains("§6Danh Hiệu");
+        boolean isSkillsGUI = strippedTitle.contains("SKILLS") || (title.contains("§6Skills") && !title.contains("Chọn"));
+        boolean isUpgradeGUI = strippedTitle.contains("UPGRADE") || title.startsWith("§6Upgrade:");
+        boolean isSkillSelectionGUI = strippedTitle.contains("CHỌN SKILL") || title.contains("§6Chọn Skill");
+        boolean isRoleSelectGUI = strippedTitle.contains("CHỌN ROLE") || title.contains("§6Chọn Role");
+        boolean isRoleChangeGUI = strippedTitle.contains("ĐỔI ROLE") || title.contains("§6Đổi Role");
+        
+        if (isRoleInfoGUI || isTitleGUI || isSkillsGUI || isUpgradeGUI || 
+            isSkillSelectionGUI || isRoleSelectGUI || isRoleChangeGUI) {
             event.setCancelled(true);
 
             if (clicked == null || clicked.getType() == Material.AIR) return;
 
             // Role Info GUI
-            if (title.startsWith("§6Role Info")) {
+            if (isRoleInfoGUI) {
                 handleRoleInfoClick(player, event.getSlot(), clicked);
             }
             // Title GUI
-            else if (title.startsWith("§6Danh Hiệu")) {
+            else if (isTitleGUI) {
                 handleTitleClick(player, event.getSlot(), clicked, title);
             }
             // Skill List GUI
-            else if (title.startsWith("§6Skills") && !title.contains("Chọn")) {
+            else if (isSkillsGUI) {
                 handleSkillListClick(player, event.getSlot(), clicked, title);
             }
             // Skill Upgrade GUI
-            else if (title.startsWith("§6Upgrade:")) {
+            else if (isUpgradeGUI) {
                 handleSkillUpgradeClick(player, event.getSlot(), clicked, title);
             }
             // Skill Selection GUI
-            else if (title.startsWith("§6Chọn Skill")) {
+            else if (isSkillSelectionGUI) {
                 handleSkillSelectionClick(player, event.getSlot(), clicked, title);
             }
             // Role Select GUI
-            else if (title.startsWith("§6Chọn Role")) {
+            else if (isRoleSelectGUI) {
                 handleRoleSelectClick(player, event.getSlot(), clicked);
             }
             // Role Change GUI
-            else if (title.startsWith("§6Đổi Role")) {
+            else if (isRoleChangeGUI) {
                 handleRoleChangeClick(player, event.getSlot(), clicked);
             }
         }
@@ -272,18 +281,25 @@ public class GUIListener implements Listener {
 
         // Upgrade button
         if (slot == 31 && (clicked.getType() == Material.EMERALD || clicked.getType() == Material.REDSTONE)) {
-            // Extract skill ID từ title
-            String skillId = extractSkillIdFromTitle(inventoryTitle);
+            // Extract skill ID từ title với player context
+            String skillId = extractSkillIdFromTitle(inventoryTitle, player);
             if (skillId != null) {
                 var skillManager = plugin.getSkillManager();
                 if (skillManager != null) {
-                    skillManager.upgradeSkill(player, skillId);
-                    // Refresh GUI
-                    var skill = skillManager.getSkill(skillId);
-                    if (skill != null) {
-                        me.skibidi.rolemmo.gui.SkillUpgradeGUI.open(player, plugin, skill);
+                    try {
+                        skillManager.upgradeSkill(player, skillId);
+                        // Refresh GUI
+                        var skill = skillManager.getSkill(skillId);
+                        if (skill != null) {
+                            me.skibidi.rolemmo.gui.SkillUpgradeGUI.open(player, plugin, skill);
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("Error upgrading skill: " + e.getMessage());
+                        player.sendMessage("§cLỗi khi nâng cấp skill! Vui lòng thử lại.");
                     }
                 }
+            } else {
+                player.sendMessage("§cKhông tìm thấy skill! Vui lòng thử lại.");
             }
             return;
         }
@@ -293,22 +309,73 @@ public class GUIListener implements Listener {
      * Extract skill ID từ inventory title
      */
     private String extractSkillIdFromTitle(String title) {
-        // Title format: "§6Upgrade: SkillName"
+        if (title == null) return null;
+        
+        // Title format có thể là: "§6Upgrade: SkillName" hoặc formatted title
+        String strippedTitle = org.bukkit.ChatColor.stripColor(title);
+        String skillName = null;
+        
         if (title.startsWith("§6Upgrade: ")) {
-            String skillName = title.substring(12); // Remove "§6Upgrade: "
-            // Tìm skill theo name
-            var skillManager = plugin.getSkillManager();
-            if (skillManager != null) {
-                Role currentRole = roleManager.getPlayerRole(plugin.getServer().getPlayer(player.getName()));
-                if (currentRole != null) {
-                    for (var skill : skillManager.getSkills(currentRole)) {
-                        if (skill.getName().equals(skillName)) {
-                            return skill.getId();
-                        }
-                    }
-                }
+            skillName = title.substring(12); // Remove "§6Upgrade: "
+        } else if (strippedTitle.contains("UPGRADE:")) {
+            // Extract từ formatted title: "⚡ UPGRADE: SkillName"
+            int index = strippedTitle.indexOf("UPGRADE:");
+            if (index >= 0) {
+                skillName = strippedTitle.substring(index + 8).trim();
             }
         }
+        
+        if (skillName == null || skillName.isEmpty()) return null;
+        
+        // Tìm skill theo name
+        var skillManager = plugin.getSkillManager();
+        if (skillManager == null) return null;
+        
+        Player player = null;
+        try {
+            // Try to get player from event context - fallback to null if not available
+            // This method should receive player as parameter
+            return null; // Will be fixed in handleSkillUpgradeClick
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Extract skill ID từ inventory title với player context
+     */
+    private String extractSkillIdFromTitle(String title, Player player) {
+        if (title == null || player == null) return null;
+        
+        // Title format có thể là: "§6Upgrade: SkillName" hoặc formatted title
+        String strippedTitle = org.bukkit.ChatColor.stripColor(title);
+        String skillName = null;
+        
+        if (title.startsWith("§6Upgrade: ")) {
+            skillName = title.substring(12); // Remove "§6Upgrade: "
+        } else if (strippedTitle.contains("UPGRADE:")) {
+            // Extract từ formatted title: "⚡ UPGRADE: SkillName"
+            int index = strippedTitle.indexOf("UPGRADE:");
+            if (index >= 0) {
+                skillName = strippedTitle.substring(index + 8).trim();
+            }
+        }
+        
+        if (skillName == null || skillName.isEmpty()) return null;
+        
+        // Tìm skill theo name
+        var skillManager = plugin.getSkillManager();
+        if (skillManager == null) return null;
+        
+        Role currentRole = roleManager.getPlayerRole(player);
+        if (currentRole == null) return null;
+        
+        for (var skill : skillManager.getSkills(currentRole)) {
+            if (skill != null && skill.getName().equals(skillName)) {
+                return skill.getId();
+            }
+        }
+        
         return null;
     }
 
@@ -465,6 +532,16 @@ public class GUIListener implements Listener {
                 }
             }
             return;
+        }
+    }
+
+    /**
+     * Clean up titlePages khi player quit để tránh memory leak
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        if (event.getPlayer() != null) {
+            titlePages.remove(event.getPlayer().getUniqueId());
         }
     }
 }

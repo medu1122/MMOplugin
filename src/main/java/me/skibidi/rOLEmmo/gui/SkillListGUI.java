@@ -75,7 +75,7 @@ public class SkillListGUI {
             int slot = skillSlots[i];
             int currentLevel = skillManager.getPlayerSkillLevel(player, skill.getId());
             
-            ItemStack skillItem = createSkillItem(skill, currentLevel, skillManager, roleManager, player);
+            ItemStack skillItem = createSkillItem(skill, currentLevel, skillManager, roleManager, player, plugin);
             inv.setItem(slot, skillItem);
         }
 
@@ -172,7 +172,7 @@ public class SkillListGUI {
      * Tạo ItemStack cho skill với font lớn và màu sắc đẹp
      */
     private static ItemStack createSkillItem(Skill skill, int currentLevel, SkillManager skillManager, 
-                                            me.skibidi.rolemmo.manager.RoleManager roleManager, Player player) {
+                                            me.skibidi.rolemmo.manager.RoleManager roleManager, Player player, ROLEmmo plugin) {
         Material material = getMaterialForSkill(skill);
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();

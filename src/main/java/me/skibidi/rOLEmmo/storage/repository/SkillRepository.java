@@ -53,6 +53,17 @@ public class SkillRepository {
      * Set level của skill
      */
     public void setSkillLevel(UUID uuid, String skillId, int level) throws SQLException {
+        // Validate level (0-999, 0 = chưa học)
+        if (level < 0 || level > 999) {
+            throw new IllegalArgumentException("Skill level must be between 0 and 999: " + level);
+        }
+        if (skillId == null || skillId.isEmpty()) {
+            throw new IllegalArgumentException("Skill ID cannot be null or empty");
+        }
+        if (uuid == null) {
+            throw new IllegalArgumentException("UUID cannot be null");
+        }
+
         String sql = """
             INSERT INTO role_skills (uuid, skill_id, level)
             VALUES (?, ?, ?)
@@ -61,7 +72,7 @@ public class SkillRepository {
         try (PreparedStatement stmt = databaseManager.getConnection().prepareStatement(sql)) {
             stmt.setString(1, uuid.toString());
             stmt.setString(2, skillId);
-            stmt.setInt(3, level);
+            stmt.setInt(3, Math.max(0, Math.min(level, 999))); // Ensure within bounds
             stmt.executeUpdate();
         }
     }

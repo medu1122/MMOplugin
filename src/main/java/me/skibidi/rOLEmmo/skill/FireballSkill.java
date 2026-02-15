@@ -103,13 +103,26 @@ public class FireballSkill extends Skill {
             return false;
         }
 
+        // Check world
+        if (player.getWorld() == null) {
+            return false;
+        }
+
         SkillLevelInfo levelInfo = getLevelInfo(level);
         if (levelInfo == null) {
             return false;
         }
 
         Location playerLoc = player.getLocation();
-        Vector direction = playerLoc.getDirection().normalize();
+        if (playerLoc == null) {
+            return false;
+        }
+        
+        Vector direction = playerLoc.getDirection();
+        if (direction == null) {
+            direction = new Vector(0, 0, 1); // Default direction
+        }
+        direction.normalize();
 
         // Spawn fireballs sau lưng player
         int fireballCount = levelInfo.getPropertyInt("fireballCount", 5);
@@ -142,30 +155,40 @@ public class FireballSkill extends Skill {
             );
 
             // Effect khi spawn
-            player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, fireballLoc, 1, 0, 0, 0, 0);
+            player.getWorld().spawnParticle(Particle.EXPLOSION, fireballLoc, 1, 0, 0, 0, 0);
             player.getWorld().spawnParticle(Particle.FLAME, fireballLoc, 15, 0.3, 0.3, 0.3, 0.1);
-            player.getWorld().spawnParticle(Particle.SMOKE_LARGE, fireballLoc, 5, 0.2, 0.2, 0.2, 0.05);
+            player.getWorld().spawnParticle(Particle.LARGE_SMOKE, fireballLoc, 5, 0.2, 0.2, 0.2, 0.05);
 
             // Spawn fireball entity
-            Fireball fireball = player.getWorld().spawn(fireballLoc, Fireball.class);
-            fireball.setShooter(player);
-            fireball.setDirection(direction);
-            fireball.setYield(0); // Không nổ
-            fireball.setIsIncendiary(false);
+            try {
+                Fireball fireball = player.getWorld().spawn(fireballLoc, Fireball.class);
+                if (fireball != null) {
+                    fireball.setShooter(player);
+                    fireball.setDirection(direction);
+                    fireball.setYield(0); // Không nổ
+                    fireball.setIsIncendiary(false);
 
-            // Set velocity
-            Vector velocity = direction.clone().multiply(1.8);
-            fireball.setVelocity(velocity);
+                    // Set velocity
+                    Vector velocity = direction.clone().multiply(1.8);
+                    fireball.setVelocity(velocity);
 
-            // Track fireball để damage và remove
-            trackFireball(fireball, player, levelInfo, range);
+                    // Track fireball để damage và remove
+                    trackFireball(fireball, player, levelInfo, range);
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to spawn fireball: " + e.getMessage());
+            }
         }
 
         // Sound effects hoành tráng
-        player.getWorld().playSound(playerLoc, Sound.ENTITY_BLAZE_SHOOT, 1.5f, 0.8f);
-        player.getWorld().playSound(playerLoc, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.0f, 1.2f);
-        player.getWorld().playSound(playerLoc, Sound.ENTITY_GHAST_SHOOT, 0.8f, 1.5f);
-        player.getWorld().playSound(playerLoc, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 0.5f, 1.0f);
+        try {
+            player.getWorld().playSound(playerLoc, Sound.ENTITY_BLAZE_SHOOT, 1.5f, 0.8f);
+            player.getWorld().playSound(playerLoc, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.0f, 1.2f);
+            player.getWorld().playSound(playerLoc, Sound.ENTITY_GHAST_SHOOT, 0.8f, 1.5f);
+            player.getWorld().playSound(playerLoc, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 0.5f, 1.0f);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to play sound effects: " + e.getMessage());
+        }
         
         // Effect xung quanh player
         for (int i = 0; i < 10; i++) {
@@ -176,7 +199,7 @@ public class FireballSkill extends Skill {
                     Math.sin(angle) * 1.5
             );
             player.getWorld().spawnParticle(Particle.FLAME, effectLoc, 5, 0.2, 0.3, 0.2, 0.05);
-            player.getWorld().spawnParticle(Particle.SMOKE_NORMAL, effectLoc, 3, 0.1, 0.2, 0.1, 0.02);
+            player.getWorld().spawnParticle(Particle.SMOKE, effectLoc, 3, 0.1, 0.2, 0.1, 0.02);
         }
 
         return true;
@@ -186,24 +209,61 @@ public class FireballSkill extends Skill {
      * Track fireball để damage và remove sau khi đi xa
      */
     private void trackFireball(Fireball fireball, Player caster, SkillLevelInfo levelInfo, double maxRange) {
-        Location startLoc = fireball.getLocation().clone();
-        me.skibidi.rolemmo.manager.ClanCoreManager clanCoreManager = plugin.getRoleManager().getClanCoreManager();
+        if (fireball == null || caster == null || levelInfo == null) {
+            return;
+        }
+        final Player casterFinal = caster;
+        final SkillLevelInfo levelInfoFinal = levelInfo;
+        Location startLoc = fireball.getLocation();
+        if (startLoc == null) {
+            return;
+        }
+        final Location startLocFinal = startLoc.clone();
+
+        me.skibidi.rolemmo.manager.ClanCoreManager clanCoreManager = null;
+        try {
+            if (plugin.getRoleManager() != null) {
+                clanCoreManager = plugin.getRoleManager().getClanCoreManager();
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to get ClanCoreManager: " + e.getMessage());
+        }
+        final me.skibidi.rolemmo.manager.ClanCoreManager clanCoreManagerFinal = clanCoreManager;
 
         new BukkitRunnable() {
             private double distanceTraveled = 0;
 
             @Override
             public void run() {
-                if (!fireball.isValid() || !caster.isOnline()) {
+                if (!fireball.isValid() || !casterFinal.isOnline() || casterFinal.getWorld() == null) {
                     cancel();
                     return;
                 }
 
                 Location currentLoc = fireball.getLocation();
-                distanceTraveled += startLoc.distance(currentLoc);
-                startLoc.setX(currentLoc.getX());
-                startLoc.setY(currentLoc.getY());
-                startLoc.setZ(currentLoc.getZ());
+                if (currentLoc == null) {
+                    // Fireball location is null, remove và cancel
+                    try {
+                        if (fireball.isValid()) {
+                            fireball.remove();
+                        }
+                    } catch (Exception e) {
+                        // Ignore
+                    }
+                    cancel();
+                    return;
+                }
+                
+                try {
+                    distanceTraveled += startLocFinal.distance(currentLoc);
+                    startLocFinal.setX(currentLoc.getX());
+                    startLocFinal.setY(currentLoc.getY());
+                    startLocFinal.setZ(currentLoc.getZ());
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Error calculating fireball distance: " + e.getMessage());
+                    cancel();
+                    return;
+                }
 
                 // Check range
                 if (distanceTraveled >= maxRange) {
@@ -213,49 +273,109 @@ public class FireballSkill extends Skill {
                 }
 
                 // Check collision với entities
-                for (Entity entity : fireball.getNearbyEntities(0.5, 0.5, 0.5)) {
-                    if (entity instanceof LivingEntity target && !target.equals(caster)) {
+                try {
+                    // Check fireball world trước khi get nearby entities
+                    if (fireball.getWorld() == null) {
+                        cancel();
+                        return;
+                    }
+                    
+                    java.util.Collection<Entity> nearbyEntities = fireball.getNearbyEntities(0.5, 0.5, 0.5);
+                    if (nearbyEntities == null) {
+                        return; // No nearby entities
+                    }
+                    
+                    for (Entity entity : nearbyEntities) {
+                        if (entity == null || !(entity instanceof LivingEntity target) || target.equals(casterFinal)) {
+                            continue;
+                        }
+                        final LivingEntity hitTarget = target;
+                        final SkillLevelInfo damageLevelInfo = levelInfoFinal;
+
                         // Check team protection
-                        if (target instanceof Player targetPlayer) {
-                            if (clanCoreManager.isEnabled() && clanCoreManager.areSameTeam(caster, targetPlayer)) {
-                                continue; // Skip teammate
+                        if (hitTarget instanceof Player) {
+                            final Player targetPlayer = (Player) hitTarget;
+                            if (clanCoreManagerFinal != null && clanCoreManagerFinal.isEnabled()) {
+                                try {
+                                    if (clanCoreManagerFinal.areSameTeam(casterFinal, targetPlayer)) {
+                                        continue; // Skip teammate
+                                    }
+                                } catch (Exception e) {
+                                    plugin.getLogger().warning("Error checking team: " + e.getMessage());
+                                }
                             }
                         }
 
                         // Damage
-                        double damage = levelInfo.getDamage();
-                        target.damage(damage, caster);
+                        try {
+                            double damage = damageLevelInfo.getDamage();
+                            if (damage > 0 && hitTarget.isValid()) {
+                                hitTarget.damage(damage, casterFinal);
+                            }
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error applying damage: " + e.getMessage());
+                        }
 
                         // Apply burn effect
-                        double burnPercent = levelInfo.getPropertyDouble("burnDurationPercent", 0.0);
-                        if (burnPercent > 0 && target instanceof LivingEntity) {
-                            int burnTicks = (int) (20 * (burnPercent / 100.0) * 5); // 5 seconds base
-                            target.setFireTicks(Math.max(target.getFireTicks(), burnTicks));
+                        try {
+                            double burnPercent = damageLevelInfo.getPropertyDouble("burnDurationPercent", 0.0);
+                            if (burnPercent > 0 && hitTarget.isValid()) {
+                                int burnTicks = (int) (20 * (burnPercent / 100.0) * 5); // 5 seconds base
+                                hitTarget.setFireTicks(Math.max(hitTarget.getFireTicks(), burnTicks));
+                            }
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error applying burn effect: " + e.getMessage());
                         }
 
                         // Particle effects hoành tráng khi hit
-                        Location hitLoc = target.getLocation().add(0, 1, 0);
-                        target.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, hitLoc, 2, 0.5, 0.5, 0.5, 0);
-                        target.getWorld().spawnParticle(Particle.FLAME, hitLoc, 30, 0.5, 0.8, 0.5, 0.15);
-                        target.getWorld().spawnParticle(Particle.SMOKE_LARGE, hitLoc, 15, 0.4, 0.6, 0.4, 0.1);
-                        target.getWorld().spawnParticle(Particle.LAVA, hitLoc, 10, 0.3, 0.5, 0.3, 0);
-                        
-                        // Sound effects khi hit
-                        target.getWorld().playSound(hitLoc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.2f);
-                        target.getWorld().playSound(hitLoc, Sound.ENTITY_BLAZE_HURT, 0.8f, 1.0f);
-                        target.getWorld().playSound(hitLoc, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.6f, 1.5f);
+                        try {
+                            if (hitTarget.getWorld() != null && hitTarget.isValid()) {
+                                Location hitLoc = hitTarget.getLocation();
+                                if (hitLoc != null) {
+                                    hitLoc = hitLoc.add(0, 1, 0);
+                                    hitTarget.getWorld().spawnParticle(Particle.EXPLOSION, hitLoc, 2, 0.5, 0.5, 0.5, 0);
+                                    hitTarget.getWorld().spawnParticle(Particle.FLAME, hitLoc, 30, 0.5, 0.8, 0.5, 0.15);
+                                    hitTarget.getWorld().spawnParticle(Particle.LARGE_SMOKE, hitLoc, 15, 0.4, 0.6, 0.4, 0.1);
+                                    hitTarget.getWorld().spawnParticle(Particle.LAVA, hitLoc, 10, 0.3, 0.5, 0.3, 0);
+                                    
+                                    // Sound effects khi hit
+                                    hitTarget.getWorld().playSound(hitLoc, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.2f);
+                                    hitTarget.getWorld().playSound(hitLoc, Sound.ENTITY_BLAZE_HURT, 0.8f, 1.0f);
+                                    hitTarget.getWorld().playSound(hitLoc, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.6f, 1.5f);
+                                }
+                            }
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error spawning particles/sounds: " + e.getMessage());
+                        }
 
-                        fireball.remove();
+                        try {
+                            if (fireball.isValid()) {
+                                fireball.remove();
+                            }
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error removing fireball: " + e.getMessage());
+                        }
+                        
                         cancel();
                         return;
                     }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Error in fireball collision check: " + e.getMessage());
                 }
 
                 // Particle trail đẹp hơn
-                Location trailLoc = fireball.getLocation();
-                fireball.getWorld().spawnParticle(Particle.FLAME, trailLoc, 5, 0.15, 0.15, 0.15, 0.02);
-                fireball.getWorld().spawnParticle(Particle.SMOKE_NORMAL, trailLoc, 2, 0.1, 0.1, 0.1, 0.01);
-                fireball.getWorld().spawnParticle(Particle.LAVA, trailLoc, 1, 0.05, 0.05, 0.05, 0);
+                try {
+                    if (fireball.isValid() && fireball.getWorld() != null) {
+                        Location trailLoc = fireball.getLocation();
+                        if (trailLoc != null) {
+                            fireball.getWorld().spawnParticle(Particle.FLAME, trailLoc, 5, 0.15, 0.15, 0.15, 0.02);
+                            fireball.getWorld().spawnParticle(Particle.SMOKE, trailLoc, 2, 0.1, 0.1, 0.1, 0.01);
+                            fireball.getWorld().spawnParticle(Particle.LAVA, trailLoc, 1, 0.05, 0.05, 0.05, 0);
+                        }
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Error spawning trail particles: " + e.getMessage());
+                }
             }
         }.runTaskTimer(plugin, 0L, 1L); // Check mỗi tick
     }

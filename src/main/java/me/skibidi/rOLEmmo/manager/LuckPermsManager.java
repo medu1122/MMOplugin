@@ -8,13 +8,16 @@ import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.group.Group;
 import net.luckperms.api.model.user.User;
 import net.luckperms.api.node.Node;
+import net.luckperms.api.node.NodeEqualityPredicate;
 import net.luckperms.api.node.types.DisplayNameNode;
 import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.node.types.PrefixNode;
 import net.luckperms.api.node.types.WeightNode;
+import net.luckperms.api.util.Tristate;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -80,9 +83,9 @@ public class LuckPermsManager {
     private void createGroupIfNotExist(String groupName, Role role) {
         if (!isEnabled()) return;
 
-        CompletableFuture<Group> groupFuture = api.getGroupManager().loadGroup(groupName);
-        groupFuture.thenAcceptAsync(group -> {
+        api.getGroupManager().loadGroup(groupName).thenAcceptAsync(opt -> {
             try {
+                Group group = opt.orElse(null);
                 if (group == null) {
                     // Group chưa tồn tại, tạo mới
                     Group newGroup = api.getGroupManager().createAndLoadGroup(groupName).join();
@@ -134,9 +137,9 @@ public class LuckPermsManager {
      */
     private void ensureGroupPermissions(Group group, Role role) {
         try {
-            boolean hasUsePermission = group.data().contains(net.luckperms.api.node.Node.builder("rolemmo.use").build());
+            boolean hasUsePermission = group.data().contains(net.luckperms.api.node.Node.builder("rolemmo.use").build(), NodeEqualityPredicate.EXACT) == Tristate.TRUE;
             boolean hasRolePermission = group.data().contains(
-                    net.luckperms.api.node.Node.builder("rolemmo." + role.name().toLowerCase() + ".*").build());
+                    net.luckperms.api.node.Node.builder("rolemmo." + role.name().toLowerCase() + ".*").build(), NodeEqualityPredicate.EXACT) == Tristate.TRUE;
 
             if (!hasUsePermission || !hasRolePermission) {
                 if (!hasUsePermission) {
@@ -173,8 +176,14 @@ public class LuckPermsManager {
             return;
         }
 
+        if (player == null || !player.isOnline()) {
+            plugin.getLogger().warning("Cannot set group: Player is null or offline");
+            return;
+        }
+
         String groupName = configManager.getLuckPermsGroup(role);
         UUID uuid = player.getUniqueId();
+        String playerName = player.getName(); // Store name for async callback
 
         // Đảm bảo group tồn tại trước
         createGroupIfNotExist(groupName, role);
@@ -183,8 +192,15 @@ public class LuckPermsManager {
         CompletableFuture<User> userFuture = api.getUserManager().loadUser(uuid);
         userFuture.thenAcceptAsync(user -> {
             try {
+                // Check player still online (async callback)
+                Player onlinePlayer = plugin.getServer().getPlayer(uuid);
+                if (onlinePlayer == null || !onlinePlayer.isOnline()) {
+                    plugin.getLogger().fine("Player " + playerName + " went offline, skipping group update");
+                    return;
+                }
+
                 if (user == null) {
-                    plugin.getLogger().warning("Failed to load user: " + player.getName());
+                    plugin.getLogger().warning("Failed to load user: " + playerName);
                     return;
                 }
 
@@ -193,7 +209,7 @@ public class LuckPermsManager {
                     String oldGroupName = configManager.getLuckPermsGroup(r);
                     if (!oldGroupName.equals(groupName)) {
                         InheritanceNode oldNode = InheritanceNode.builder(oldGroupName).build();
-                        if (user.data().contains(oldNode)) {
+                        if (user.data().contains(oldNode, NodeEqualityPredicate.EXACT) == Tristate.TRUE) {
                             user.data().remove(oldNode);
                         }
                     }
@@ -201,19 +217,19 @@ public class LuckPermsManager {
 
                 // Add new group (chỉ add nếu chưa có)
                 InheritanceNode groupNode = InheritanceNode.builder(groupName).build();
-                if (!user.data().contains(groupNode)) {
+                if (user.data().contains(groupNode, NodeEqualityPredicate.EXACT) != Tristate.TRUE) {
                     user.data().add(groupNode);
                 }
 
                 // Save user
                 api.getUserManager().saveUser(user);
-                plugin.getLogger().info("Set group " + groupName + " for player: " + player.getName());
+                plugin.getLogger().info("Set group " + groupName + " for player: " + playerName);
             } catch (Exception e) {
-                plugin.getLogger().severe("Failed to set group for player " + player.getName() + ": " + e.getMessage());
+                plugin.getLogger().severe("Failed to set group for player " + playerName + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }).exceptionally(throwable -> {
-            plugin.getLogger().severe("Error setting group for player " + player.getName() + ": " + throwable.getMessage());
+            plugin.getLogger().severe("Error setting group for player " + playerName + ": " + throwable.getMessage());
             throwable.printStackTrace();
             return null;
         });
@@ -224,16 +240,26 @@ public class LuckPermsManager {
      */
     public void removePlayerGroup(Player player, Role role) {
         if (!isEnabled()) return;
+        if (player == null) return;
 
         String groupName = configManager.getLuckPermsGroup(role);
         UUID uuid = player.getUniqueId();
+        String playerName = player.getName(); // Store name for async callback
 
         CompletableFuture<User> userFuture = api.getUserManager().loadUser(uuid);
         userFuture.thenAcceptAsync(user -> {
-            if (user != null) {
-                user.data().remove(InheritanceNode.builder(groupName).build());
-                api.getUserManager().saveUser(user);
+            try {
+                if (user != null) {
+                    user.data().remove(InheritanceNode.builder(groupName).build());
+                    api.getUserManager().saveUser(user);
+                    plugin.getLogger().fine("Removed group " + groupName + " from player: " + playerName);
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to remove group for player " + playerName + ": " + e.getMessage());
             }
+        }).exceptionally(throwable -> {
+            plugin.getLogger().warning("Error removing group for player " + playerName + ": " + throwable.getMessage());
+            return null;
         });
     }
 

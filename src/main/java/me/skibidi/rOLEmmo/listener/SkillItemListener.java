@@ -49,6 +49,10 @@ public class SkillItemListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
+        
+        if (!player.isOnline()) {
+            return;
+        }
 
         ItemStack clicked = event.getCurrentItem();
         ItemStack cursor = event.getCursor();
@@ -81,11 +85,15 @@ public class SkillItemListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
+        
+        if (!player.isOnline()) {
+            return;
+        }
 
         ItemStack dragged = event.getOldCursor();
         if (dragged != null && SkillItemUtil.isSkillItem(dragged)) {
             // Cho phép drag trong player inventory, nhưng không cho drag ra ngoài
-            if (event.getInventory().getType() != InventoryType.PLAYER) {
+            if (event.getInventory() != null && event.getInventory().getType() != InventoryType.PLAYER) {
                 event.setCancelled(true);
                 player.sendMessage("§cKhông thể di chuyển skill item ra khỏi túi đồ!");
             }
@@ -97,10 +105,17 @@ public class SkillItemListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
+        if (event == null) return;
+        
         Player player = event.getEntity();
+        if (player == null || !player.isOnline()) return;
         
         // Remove skill items khỏi drops
-        event.getDrops().removeIf(SkillItemUtil::isSkillItem);
+        try {
+            event.getDrops().removeIf(item -> item != null && SkillItemUtil.isSkillItem(item));
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error removing skill items from drops: " + e.getMessage());
+        }
         
         // Lưu skill items để thêm lại khi respawn
         // (Có thể lưu vào metadata hoặc tự động thêm lại khi respawn)
@@ -111,11 +126,16 @@ public class SkillItemListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerRespawn(PlayerRespawnEvent event) {
+        if (event == null) return;
+        
         Player player = event.getPlayer();
+        if (player == null || !player.isOnline()) return;
         
         // Thêm lại skill items sau 1 tick (đảm bảo inventory đã được restore)
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            giveSkillItems(player);
+            if (player.isOnline()) {
+                giveSkillItems(player);
+            }
         }, 1L);
     }
 
@@ -124,9 +144,12 @@ public class SkillItemListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event == null) return;
+        
         Player player = event.getPlayer();
+        if (player == null || !player.isOnline()) return;
+        
         ItemStack item = event.getItem();
-
         if (item == null || !SkillItemUtil.isSkillItem(item)) {
             return;
         }
@@ -139,14 +162,19 @@ public class SkillItemListener implements Listener {
         event.setCancelled(true);
 
         String skillId = SkillItemUtil.getSkillId(item);
-        if (skillId == null) {
+        if (skillId == null || skillId.isEmpty()) {
             return;
         }
 
         // Execute skill
-        var skillManager = plugin.getSkillManager();
-        if (skillManager != null) {
-            skillManager.executeSkill(player, skillId);
+        try {
+            var skillManager = plugin.getSkillManager();
+            if (skillManager != null) {
+                skillManager.executeSkill(player, skillId);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error executing skill " + skillId + " for player " + player.getName() + ": " + e.getMessage());
+            player.sendMessage("§cLỗi khi sử dụng skill! Vui lòng thử lại sau.");
         }
     }
 
@@ -194,24 +222,42 @@ public class SkillItemListener implements Listener {
      * Give skill items cho player dựa trên role hiện tại
      */
     private void giveSkillItems(Player player) {
-        var roleManager = plugin.getRoleManager();
-        var skillManager = plugin.getSkillManager();
+        if (player == null || !player.isOnline()) {
+            return;
+        }
         
-        if (roleManager == null || skillManager == null) {
-            return;
-        }
-
-        var currentRole = roleManager.getPlayerRole(player);
-        if (currentRole == null) {
-            return;
-        }
-
-        java.util.List<me.skibidi.rolemmo.model.Skill> skills = skillManager.getSkills(currentRole);
-        for (me.skibidi.rolemmo.model.Skill skill : skills) {
-            int level = skillManager.getPlayerSkillLevel(player, skill.getId());
-            if (level > 0) {
-                SkillItemUtil.ensureSkillItem(player, skill, level);
+        try {
+            var roleManager = plugin.getRoleManager();
+            var skillManager = plugin.getSkillManager();
+            
+            if (roleManager == null || skillManager == null) {
+                return;
             }
+
+            var currentRole = roleManager.getPlayerRole(player);
+            if (currentRole == null) {
+                return;
+            }
+
+            java.util.List<me.skibidi.rolemmo.model.Skill> skills = skillManager.getSkills(currentRole);
+            if (skills == null) {
+                return;
+            }
+            
+            for (me.skibidi.rolemmo.model.Skill skill : skills) {
+                if (skill == null) continue;
+                
+                try {
+                    int level = skillManager.getPlayerSkillLevel(player, skill.getId());
+                    if (level > 0) {
+                        SkillItemUtil.ensureSkillItem(player, skill, level);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Error giving skill item " + skill.getId() + " to player " + player.getName() + ": " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error in giveSkillItems for player " + (player != null ? player.getName() : "null") + ": " + e.getMessage());
         }
     }
 }

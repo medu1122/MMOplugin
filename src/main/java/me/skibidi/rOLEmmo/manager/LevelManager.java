@@ -34,9 +34,15 @@ public class LevelManager {
 
     /**
      * Thêm exp cho role của player
+     * Synchronized để tránh race condition khi nhiều exp events xảy ra cùng lúc
      */
-    public void addExperience(Player player, Role role, int exp) {
+    public synchronized void addExperience(Player player, Role role, int exp) {
         if (player == null || role == null || exp <= 0) {
+            return;
+        }
+
+        // Check player online trước khi xử lý
+        if (!player.isOnline()) {
             return;
         }
 
@@ -49,35 +55,66 @@ public class LevelManager {
 
             int currentExp = data.getExp(role);
             int currentLevel = data.getLevel(role);
-            int newExp = currentExp + exp;
+            
+            // Check integer overflow
+            long newExpLong = (long) currentExp + (long) exp;
+            if (newExpLong > Integer.MAX_VALUE) {
+                logger.warning("Experience overflow detected for player " + player.getName() + " role " + role.name() + 
+                        ". Current: " + currentExp + ", Adding: " + exp + ". Capping at max.");
+                newExpLong = Integer.MAX_VALUE;
+            }
+            int newExp = (int) newExpLong;
 
             // Check level up
             int requiredExp = configManager.getRequiredExpForLevel(currentLevel);
-            while (newExp >= requiredExp && currentLevel < 999) {
+            int maxIterations = 1000; // Safety limit để tránh infinite loop
+            int iterations = 0;
+            
+            while (newExp >= requiredExp && currentLevel < 999 && iterations < maxIterations) {
+                iterations++;
+                
                 // Level up!
-                newExp -= requiredExp;
+                newExp = (int) Math.max(0, (long) newExp - (long) requiredExp); // Ensure non-negative và tránh underflow
                 currentLevel++;
                 
                 // Thêm skill point khi level up
                 data.setSkillPoints(data.getSkillPoints() + 1);
                 
                 // Unlock titles nếu có
-                titleManager.checkAndUnlockTitles(player, role, currentLevel);
-                
-                // Thông báo level up
-                player.sendMessage(configManager.getMessage("level_up")
-                        .replace("{level}", String.valueOf(currentLevel)));
+                if (player.isOnline()) {
+                    titleManager.checkAndUnlockTitles(player, role, currentLevel);
+                    
+                    // Thông báo level up
+                    player.sendMessage(configManager.getMessage("level_up")
+                            .replace("{level}", String.valueOf(currentLevel)));
+                }
                 
                 logger.info("Player " + player.getName() + " leveled up " + role.name() + " to level " + currentLevel);
                 
                 // Tính exp cần cho level tiếp theo
                 requiredExp = configManager.getRequiredExpForLevel(currentLevel);
+                
+                // Safety check: nếu requiredExp = 0 hoặc quá lớn, break
+                if (requiredExp <= 0 || requiredExp == Integer.MAX_VALUE) {
+                    break;
+                }
+            }
+            
+            if (iterations >= maxIterations) {
+                logger.warning("Level up loop reached max iterations for player " + player.getName() + " role " + role.name());
             }
 
             // Đảm bảo không vượt quá max level
             if (currentLevel >= 999) {
                 currentLevel = 999;
                 newExp = 0; // Reset exp khi đạt max level
+            }
+
+            // Đảm bảo exp không âm (safety check)
+            if (newExp < 0) {
+                logger.warning("Negative exp detected for player " + player.getName() + " role " + role.name() + 
+                        ". Resetting to 0.");
+                newExp = 0;
             }
 
             // Update data
@@ -104,8 +141,29 @@ public class LevelManager {
             return;
         }
 
+        // Check player online
+        if (!player.isOnline()) {
+            return;
+        }
+
         double conversionRate = configManager.getExpConversionRate();
-        int roleExp = (int) (playerExp * conversionRate);
+        // Validate conversion rate
+        if (conversionRate < 0) {
+            conversionRate = 0;
+        }
+        if (conversionRate > 10) {
+            logger.warning("Exp conversion rate is very high: " + conversionRate + ", capping at 10");
+            conversionRate = 10; // Cap at 10x để tránh abuse
+        }
+        
+        // Check integer overflow khi convert
+        long roleExpLong = Math.round((long) playerExp * conversionRate);
+        if (roleExpLong > Integer.MAX_VALUE) {
+            logger.warning("Role exp overflow detected for player " + player.getName() + " role " + role.name() + 
+                    ". PlayerExp: " + playerExp + ", Rate: " + conversionRate + ". Capping at max.");
+            roleExpLong = Integer.MAX_VALUE;
+        }
+        int roleExp = (int) roleExpLong;
         
         if (roleExp > 0) {
             addExperience(player, role, roleExp);
@@ -171,8 +229,10 @@ public class LevelManager {
             data.setLevel(role, level);
             data.setExp(role, 0); // Reset exp khi set level
 
-            // Unlock titles cho level mới
-            titleManager.checkAndUnlockTitles(player, role, level);
+            // Unlock titles cho level mới (check player online)
+            if (player.isOnline()) {
+                titleManager.checkAndUnlockTitles(player, role, level);
+            }
 
             // Lưu vào database
             playerRoleRepository.savePlayerRole(data);

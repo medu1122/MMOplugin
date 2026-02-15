@@ -27,8 +27,17 @@ public class SkillSelectionGUI {
      * Mở GUI chọn skill cho player
      */
     public static void open(Player player, ROLEmmo plugin) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+
         var roleManager = plugin.getRoleManager();
         var skillManager = plugin.getSkillManager();
+
+        if (roleManager == null || skillManager == null) {
+            player.sendMessage("§cLỗi hệ thống! Vui lòng thử lại sau.");
+            return;
+        }
 
         Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null) {
@@ -37,7 +46,7 @@ public class SkillSelectionGUI {
         }
 
         List<Skill> skills = skillManager.getSkills(currentRole);
-        if (skills.isEmpty()) {
+        if (skills == null || skills.isEmpty()) {
             openEmpty(player, plugin);
             return;
         }
@@ -46,7 +55,7 @@ public class SkillSelectionGUI {
         long lastSkillChange = skillManager.getLastSkillChange(player);
         long timeSinceChange = System.currentTimeMillis() - lastSkillChange;
         boolean canChange = timeSinceChange >= SKILL_CHANGE_COOLDOWN;
-        long remainingMinutes = (SKILL_CHANGE_COOLDOWN - timeSinceChange) / (60 * 1000);
+        long remainingMinutes = Math.max(0, (SKILL_CHANGE_COOLDOWN - timeSinceChange) / (60 * 1000));
 
         String[] roleGradient = getGradientForRole(currentRole);
         Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("⚡ CHỌN SKILL", GUIUtil.GRADIENT_PURPLE) + 
@@ -196,39 +205,53 @@ public class SkillSelectionGUI {
     }
 
     /**
-     * Tạo ItemStack cho skill
+     * Tạo ItemStack cho skill với font lớn và màu sắc đẹp
      */
     private static ItemStack createSkillItem(Skill skill, boolean isSelected, int skillLevel, 
                                              boolean canChange, ROLEmmo plugin) {
+        if (skill == null) {
+            return new ItemStack(Material.BARRIER);
+        }
+        
         Material material = getMaterialForSkill(skill);
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            String displayName = "§e" + skill.getName();
+            String skillIcon = GUIUtil.getSkillIcon(skill.getId());
+            String displayName;
             if (isSelected) {
-                displayName = "§a§l✓ " + skill.getName() + " §a§l(ĐANG DÙNG)";
+                displayName = GUIUtil.createLargeTitle("✓ " + skillIcon + " " + skill.getName(), GUIUtil.GRADIENT_GREEN) + 
+                        GUIUtil.COLOR_SUCCESS + " §l(ĐANG DÙNG)";
+            } else {
+                displayName = GUIUtil.createLargeTitle(skillIcon + " " + skill.getName(), GUIUtil.GRADIENT_PURPLE);
             }
             meta.setDisplayName(displayName);
 
             List<String> lore = new ArrayList<>();
-            lore.add("§7" + skill.getDescription());
-            lore.add("");
-            lore.add("§7Level: §e" + skillLevel + "§7/§e" + skill.getMaxLevel());
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_INFO + "§l" + skill.getDescription());
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_SECONDARY + "§lLevel: " + 
+                    GUIUtil.gradientText(String.valueOf(skillLevel), GUIUtil.GRADIENT_BLUE) + 
+                    GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText(String.valueOf(skill.getMaxLevel()), GUIUtil.GRADIENT_BLUE));
             
             if (skillLevel < 1) {
-                lore.add("§cChưa học skill này!");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Chưa học skill này!");
             }
             
-            lore.add("");
+            lore.add(" ");
             if (isSelected) {
-                lore.add("§a§lĐang sử dụng skill này!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Đang sử dụng skill này!");
             } else if (canChange) {
-                lore.add("§eClick để chọn skill này!");
+                lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để chọn skill này!");
             } else {
-                lore.add("§cKhông thể đổi skill!");
-                lore.add("§7Cần đợi 30 phút từ lần đổi cuối");
+                lore.add(GUIUtil.COLOR_ERROR + "§l✖ Không thể đổi skill!");
+                lore.add(GUIUtil.COLOR_MUTED + "Cần đợi 30 phút từ lần đổi cuối");
             }
+            lore.add(" ");
+            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -252,6 +275,7 @@ public class SkillSelectionGUI {
      * Format time (milliseconds) thành string
      */
     private static String formatTime(long milliseconds) {
+        if (milliseconds < 0) milliseconds = 0;
         long seconds = milliseconds / 1000;
         long minutes = seconds / 60;
         long hours = minutes / 60;
@@ -263,5 +287,16 @@ public class SkillSelectionGUI {
         } else {
             return seconds + "s";
         }
+    }
+
+    /**
+     * Lấy gradient colors cho role
+     */
+    private static String[] getGradientForRole(Role role) {
+        return switch (role) {
+            case TANKER -> GUIUtil.GRADIENT_BLUE;
+            case DPS -> GUIUtil.GRADIENT_RED;
+            case HEALER -> GUIUtil.GRADIENT_GREEN;
+        };
     }
 }

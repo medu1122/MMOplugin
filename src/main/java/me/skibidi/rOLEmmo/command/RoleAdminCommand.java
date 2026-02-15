@@ -44,7 +44,7 @@ public class RoleAdminCommand implements CommandExecutor {
                 }
 
                 Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
+                if (target == null || !target.isOnline()) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
                     return true;
                 }
@@ -68,14 +68,16 @@ public class RoleAdminCommand implements CommandExecutor {
                         sender.sendMessage(plugin.getConfigManager().getMessage("admin_give_level")
                                 .replace("{player}", target.getName())
                                 .replace("{level}", String.valueOf(level)));
-                        target.sendMessage("§aAdmin đã set level " + level + " cho role " + role.getDisplayName() + " của bạn!");
+                        if (target.isOnline()) {
+                            target.sendMessage("§aAdmin đã set level " + level + " cho role " + role.getDisplayName() + " của bạn!");
+                        }
                     } else {
                         sender.sendMessage("§cLỗi khi set level! Vui lòng thử lại sau.");
                     }
-                } catch (IllegalArgumentException e) {
-                    sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
                 } catch (NumberFormatException e) {
                     sender.sendMessage("§cLevel phải là số!");
+                } catch (IllegalArgumentException e) {
+                    sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
                 }
             }
 
@@ -86,19 +88,28 @@ public class RoleAdminCommand implements CommandExecutor {
                 }
 
                 Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
+                if (target == null || !target.isOnline()) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
                     return true;
                 }
 
                 try {
                     int points = Integer.parseInt(args[2]);
+                    
+                    // Validate points (tránh quá lớn hoặc quá nhỏ)
+                    if (points < -1000000 || points > 1000000) {
+                        sender.sendMessage("§cAmount phải từ -1,000,000 đến 1,000,000!");
+                        return true;
+                    }
+                    
                     roleManager.addSkillPoints(target, points);
 
                     sender.sendMessage(plugin.getConfigManager().getMessage("admin_give_skill_points")
                             .replace("{player}", target.getName())
                             .replace("{points}", String.valueOf(points)));
-                    target.sendMessage("§aAdmin đã give " + points + " skill points cho bạn!");
+                    if (target.isOnline()) {
+                        target.sendMessage("§aAdmin đã give " + points + " skill points cho bạn!");
+                    }
                 } catch (NumberFormatException e) {
                     sender.sendMessage("§cAmount phải là số!");
                 }
@@ -111,19 +122,43 @@ public class RoleAdminCommand implements CommandExecutor {
                 }
 
                 Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
+                if (target == null || !target.isOnline()) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
                     return true;
                 }
 
                 try {
                     Role role = Role.valueOf(args[2].toUpperCase());
-                    roleManager.selectRole(target, role);
-
-                    sender.sendMessage(plugin.getConfigManager().getMessage("admin_set_role")
-                            .replace("{player}", target.getName())
-                            .replace("{role}", role.getFullDisplayName()));
-                    target.sendMessage("§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
+                    
+                    // Check nếu player đã có role, dùng forceChangeRole (bypass cooldown cho admin)
+                    Role currentRole = roleManager.getPlayerRole(target);
+                    if (currentRole != null && currentRole != role) {
+                        // Force change role (admin bypass cooldown)
+                        if (roleManager.forceChangeRole(target, role)) {
+                            sender.sendMessage(plugin.getConfigManager().getMessage("admin_set_role")
+                                    .replace("{player}", target.getName())
+                                    .replace("{role}", role.getFullDisplayName()));
+                            if (target.isOnline()) {
+                                target.sendMessage("§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
+                            }
+                        } else {
+                            sender.sendMessage("§cLỗi khi set role! Vui lòng thử lại sau.");
+                        }
+                    } else if (currentRole == null) {
+                        // Chưa có role, dùng selectRole
+                        if (roleManager.selectRole(target, role)) {
+                            sender.sendMessage(plugin.getConfigManager().getMessage("admin_set_role")
+                                    .replace("{player}", target.getName())
+                                    .replace("{role}", role.getFullDisplayName()));
+                            if (target.isOnline()) {
+                                target.sendMessage("§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
+                            }
+                        } else {
+                            sender.sendMessage("§cLỗi khi set role! Vui lòng thử lại sau.");
+                        }
+                    } else {
+                        sender.sendMessage("§cPlayer đã có role này rồi!");
+                    }
                 } catch (IllegalArgumentException e) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
                 }
@@ -136,16 +171,20 @@ public class RoleAdminCommand implements CommandExecutor {
                 }
 
                 Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
+                if (target == null || !target.isOnline()) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
                     return true;
                 }
 
                 String skillId = args[2];
-                me.skibidi.rolemmo.util.SkillItemUtil.removeSkillItem(target, skillId);
+                if (target.isOnline()) {
+                    me.skibidi.rolemmo.util.SkillItemUtil.removeSkillItem(target, skillId);
+                }
                 
                 sender.sendMessage("§aĐã remove skill item " + skillId + " khỏi " + target.getName());
-                target.sendMessage("§cAdmin đã remove skill item " + skillId + " của bạn!");
+                if (target.isOnline()) {
+                    target.sendMessage("§cAdmin đã remove skill item " + skillId + " của bạn!");
+                }
             }
 
             case "giveexp" -> {
@@ -155,7 +194,7 @@ public class RoleAdminCommand implements CommandExecutor {
                 }
 
                 Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
+                if (target == null || !target.isOnline()) {
                     sender.sendMessage(plugin.getConfigManager().getMessage("player_not_found"));
                     return true;
                 }
@@ -169,6 +208,12 @@ public class RoleAdminCommand implements CommandExecutor {
                         return true;
                     }
 
+                    // Validate exp amount (tránh quá lớn)
+                    if (exp > 10000000) {
+                        sender.sendMessage("§cExp quá lớn! Tối đa 10,000,000.");
+                        return true;
+                    }
+
                     if (plugin.getRoleManager().getPlayerRole(target) == null) {
                         sender.sendMessage("§cPlayer chưa có role! Hãy cho họ chọn role trước.");
                         return true;
@@ -177,11 +222,13 @@ public class RoleAdminCommand implements CommandExecutor {
                     plugin.getLevelManager().addExperience(target, role, exp);
                     
                     sender.sendMessage("§aĐã give " + exp + " exp cho role " + role.getDisplayName() + " của " + target.getName());
-                    target.sendMessage("§aAdmin đã give " + exp + " exp cho role " + role.getDisplayName() + " của bạn!");
-                } catch (IllegalArgumentException e) {
-                    sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
+                    if (target.isOnline()) {
+                        target.sendMessage("§aAdmin đã give " + exp + " exp cho role " + role.getDisplayName() + " của bạn!");
+                    }
                 } catch (NumberFormatException e) {
                     sender.sendMessage("§cAmount phải là số!");
+                } catch (IllegalArgumentException e) {
+                    sender.sendMessage(plugin.getConfigManager().getMessage("invalid_role"));
                 }
             }
 

@@ -38,18 +38,43 @@ public class PlayerRoleRepository {
                         }
                     }
 
+                    // Check column existence bằng cách check ResultSetMetaData
                     String selectedSkillId = null;
-                    try {
-                        selectedSkillId = rs.getString("selected_skill_id");
-                    } catch (SQLException e) {
-                        // Column có thể chưa tồn tại trong database cũ
-                    }
-                    
                     long lastSkillChange = 0;
                     try {
-                        lastSkillChange = rs.getLong("last_skill_change");
+                        java.sql.ResultSetMetaData metaData = rs.getMetaData();
+                        int columnCount = metaData.getColumnCount();
+                        boolean hasSelectedSkillId = false;
+                        boolean hasLastSkillChange = false;
+                        
+                        for (int i = 1; i <= columnCount; i++) {
+                            String columnName = metaData.getColumnName(i);
+                            if ("selected_skill_id".equalsIgnoreCase(columnName)) {
+                                hasSelectedSkillId = true;
+                            }
+                            if ("last_skill_change".equalsIgnoreCase(columnName)) {
+                                hasLastSkillChange = true;
+                            }
+                        }
+                        
+                        if (hasSelectedSkillId) {
+                            selectedSkillId = rs.getString("selected_skill_id");
+                        }
+                        if (hasLastSkillChange) {
+                            lastSkillChange = rs.getLong("last_skill_change");
+                        }
                     } catch (SQLException e) {
-                        // Column có thể chưa tồn tại trong database cũ
+                        // Fallback: nếu không check được metadata, thử get trực tiếp
+                        try {
+                            selectedSkillId = rs.getString("selected_skill_id");
+                        } catch (SQLException ignored) {
+                            // Column không tồn tại
+                        }
+                        try {
+                            lastSkillChange = rs.getLong("last_skill_change");
+                        } catch (SQLException ignored) {
+                            // Column không tồn tại
+                        }
                     }
                     
                     return new PlayerRoleData(
@@ -118,6 +143,8 @@ public class PlayerRoleRepository {
             stmt.setInt(8, Math.max(0, data.getHealerExp()));
             stmt.setInt(9, Math.max(0, data.getSkillPoints()));
             stmt.setLong(10, Math.max(0, data.getLastRoleChange()));
+            stmt.setString(11, data.getSelectedSkillId()); // selected_skill_id
+            stmt.setLong(12, Math.max(0, data.getLastSkillChange())); // last_skill_change
             
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected == 0) {

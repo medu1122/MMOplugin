@@ -106,9 +106,33 @@ public class ConfigManager {
      * Có thể config công thức hoặc giá trị cố định
      */
     public int getRequiredExpForLevel(int currentLevel) {
+        // Validate level
+        if (currentLevel < 1) {
+            currentLevel = 1;
+        }
+        if (currentLevel >= 999) {
+            return Integer.MAX_VALUE; // Max level, không thể level up nữa
+        }
+        
         // Default formula: level * 100
         int baseExp = config.getInt("experience.base_exp_per_level", 100);
-        return currentLevel * baseExp;
+        if (baseExp <= 0) {
+            baseExp = 100; // Fallback nếu config invalid
+        }
+        if (baseExp > 1000000) {
+            plugin.getLogger().warning("Base exp per level is very high: " + baseExp + ", capping at 1000000");
+            baseExp = 1000000; // Cap để tránh overflow
+        }
+        
+        // Check integer overflow
+        long requiredExpLong = (long) currentLevel * (long) baseExp;
+        if (requiredExpLong > Integer.MAX_VALUE) {
+            plugin.getLogger().warning("Required exp overflow for level " + currentLevel + " with baseExp " + baseExp + 
+                    ". Capping at max.");
+            return Integer.MAX_VALUE;
+        }
+        
+        return (int) requiredExpLong;
     }
 
     // ========== MESSAGES ==========

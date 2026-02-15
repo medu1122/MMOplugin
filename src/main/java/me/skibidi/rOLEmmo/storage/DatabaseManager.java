@@ -24,9 +24,18 @@ public class DatabaseManager {
         this.dbPath = new File(dataFolder, "rolemmo.db").getAbsolutePath();
     }
 
-    public void connect() throws SQLException {
+    public synchronized void connect() throws SQLException {
         if (connection != null && !connection.isClosed()) {
             return;
+        }
+
+        // Đóng connection cũ nếu có (tránh leak)
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                // Ignore - đang cố reconnect
+            }
         }
 
         try {
@@ -51,14 +60,12 @@ public class DatabaseManager {
         }
     }
 
-    public Connection getConnection() {
-        try {
-            if (connection == null || connection.isClosed()) {
-                connect();
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().severe("Error getting database connection: " + e.getMessage());
-            e.printStackTrace();
+    public synchronized Connection getConnection() throws SQLException {
+        if (connection == null || connection.isClosed()) {
+            connect();
+        }
+        if (connection == null) {
+            throw new SQLException("Failed to establish database connection");
         }
         return connection;
     }

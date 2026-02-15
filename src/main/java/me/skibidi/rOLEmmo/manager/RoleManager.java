@@ -23,6 +23,7 @@ public class RoleManager {
     private final PlayerRoleRepository playerRoleRepository;
     private final LuckPermsManager luckPermsManager;
     private final MoneyPluginManager moneyPluginManager;
+    private final ClanCoreManager clanCoreManager;
     private final Logger logger;
 
     public RoleManager(ROLEmmo plugin) {
@@ -32,6 +33,7 @@ public class RoleManager {
         this.playerRoleRepository = new PlayerRoleRepository(databaseManager);
         this.luckPermsManager = new LuckPermsManager(plugin);
         this.moneyPluginManager = new MoneyPluginManager(plugin);
+        this.clanCoreManager = new ClanCoreManager(plugin);
         this.logger = plugin.getLogger();
     }
 
@@ -88,7 +90,9 @@ public class RoleManager {
                         1, 0, // dps level, exp
                         1, 0, // healer level, exp
                         0,    // skill points
-                        System.currentTimeMillis() // last role change
+                        System.currentTimeMillis(), // last role change
+                        null, // selectedSkillId (chưa chọn)
+                        0L    // lastSkillChange (chưa đổi)
                 );
             }
 
@@ -108,7 +112,9 @@ public class RoleManager {
 
             // Give skill items sau 1 tick
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                giveSkillItems(player, role);
+                if (player.isOnline()) {
+                    giveSkillItems(player, role);
+                }
             }, 1L);
 
             player.sendMessage(configManager.getMessage("role_selected")
@@ -123,6 +129,74 @@ public class RoleManager {
             return false;
         } catch (Exception e) {
             logger.severe("Unexpected error in selectRole for player " + player.getName() + ": " + e.getMessage());
+            e.printStackTrace();
+            player.sendMessage("§cLỗi không mong đợi! Vui lòng liên hệ admin.");
+            return false;
+        }
+    }
+
+    /**
+     * Force change role (admin bypass cooldown)
+     */
+    public boolean forceChangeRole(Player player, Role newRole) {
+        if (player == null || newRole == null) {
+            logger.warning("Invalid parameters for forceChangeRole: player=" + player + ", role=" + newRole);
+            return false;
+        }
+
+        Role currentRole = getPlayerRole(player);
+        if (currentRole == null) {
+            return selectRole(player, newRole);
+        }
+
+        if (currentRole == newRole) {
+            player.sendMessage("§cBạn đã có role này rồi!");
+            return false;
+        }
+
+        try {
+            PlayerRoleRepository.PlayerRoleData data = playerRoleRepository.getPlayerRole(player.getUniqueId());
+            if (data == null) {
+                logger.warning("Player data not found for " + player.getName() + ", creating new...");
+                return selectRole(player, newRole);
+            }
+
+            if (data.getUuid() == null || !data.getUuid().equals(player.getUniqueId())) {
+                logger.severe("Data UUID mismatch for player " + player.getName());
+                player.sendMessage("§cLỗi dữ liệu! Vui lòng liên hệ admin.");
+                return false;
+            }
+
+            // Update role (bypass cooldown)
+            data.setCurrentRole(newRole);
+            data.setLastRoleChange(System.currentTimeMillis());
+
+            playerRoleRepository.savePlayerRole(data);
+
+            if (luckPermsManager.isEnabled()) {
+                luckPermsManager.setPlayerGroup(player, newRole);
+            }
+
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    me.skibidi.rolemmo.util.SkillItemUtil.removeAllSkillItems(player, currentRole);
+                    giveSkillItems(player, newRole);
+                }
+            }, 1L);
+
+            player.sendMessage(configManager.getMessage("role_change_success")
+                    .replace("{role}", newRole.getFullDisplayName()));
+
+            logger.info("Admin force changed role for " + player.getName() + " from " + 
+                    currentRole.name() + " to " + newRole.name());
+            return true;
+        } catch (SQLException e) {
+            logger.severe("Database error in forceChangeRole for player " + player.getName() + ": " + e.getMessage());
+            e.printStackTrace();
+            player.sendMessage("§cLỗi database! Vui lòng thử lại sau.");
+            return false;
+        } catch (Exception e) {
+            logger.severe("Unexpected error in forceChangeRole for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
             player.sendMessage("§cLỗi không mong đợi! Vui lòng liên hệ admin.");
             return false;
@@ -215,8 +289,10 @@ public class RoleManager {
 
             // Remove old role skill items và give new role skill items
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                me.skibidi.rolemmo.util.SkillItemUtil.removeAllSkillItems(player, currentRole);
-                giveSkillItems(player, newRole);
+                if (player.isOnline()) {
+                    me.skibidi.rolemmo.util.SkillItemUtil.removeAllSkillItems(player, currentRole);
+                    giveSkillItems(player, newRole);
+                }
             }, 1L);
 
             player.sendMessage(configManager.getMessage("role_change_success")
@@ -333,12 +409,19 @@ public class RoleManager {
 
     /**
      * Thêm skill points cho player
+     * Synchronized để tránh race condition khi nhiều operations cùng lúc
      */
-    public void addSkillPoints(Player player, int points) {
+    public synchronized void addSkillPoints(Player player, int points) {
+        if (player == null) {
+            return;
+        }
+        
         try {
             PlayerRoleRepository.PlayerRoleData data = playerRoleRepository.getPlayerRole(player.getUniqueId());
             if (data != null) {
-                data.setSkillPoints(data.getSkillPoints() + points);
+                int currentPoints = data.getSkillPoints();
+                int newPoints = Math.max(0, currentPoints + points); // Ensure non-negative
+                data.setSkillPoints(newPoints);
                 playerRoleRepository.savePlayerRole(data);
             }
         } catch (SQLException e) {
@@ -356,7 +439,7 @@ public class RoleManager {
     }
 
     public ClanCoreManager getClanCoreManager() {
-        return new ClanCoreManager(plugin);
+        return clanCoreManager;
     }
 
     /**

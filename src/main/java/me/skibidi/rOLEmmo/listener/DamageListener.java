@@ -15,11 +15,17 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 public class DamageListener implements Listener {
 
     private final ROLEmmo plugin;
-    private final ClanCoreManager clanCoreManager;
 
     public DamageListener(ROLEmmo plugin) {
         this.plugin = plugin;
-        this.clanCoreManager = new me.skibidi.rolemmo.manager.ClanCoreManager(plugin);
+    }
+    
+    /**
+     * Lấy ClanCoreManager từ RoleManager (reuse instance)
+     */
+    private ClanCoreManager getClanCoreManager() {
+        var roleManager = plugin.getRoleManager();
+        return roleManager != null ? roleManager.getClanCoreManager() : null;
     }
 
     /**
@@ -37,11 +43,23 @@ public class DamageListener implements Listener {
             return;
         }
 
+        // Check players online
+        if (!attacker.isOnline() || !victim.isOnline()) {
+            return;
+        }
+
         // Check nếu cùng team thì cancel damage
-        if (clanCoreManager.isEnabled() && clanCoreManager.areSameTeam(attacker, victim)) {
-            event.setCancelled(true);
-            // Có thể thêm message nếu muốn
-            // attacker.sendMessage("§cKhông thể tấn công đồng đội!");
+        ClanCoreManager clanCoreManager = getClanCoreManager();
+        if (clanCoreManager != null && clanCoreManager.isEnabled()) {
+            try {
+                if (clanCoreManager.areSameTeam(attacker, victim)) {
+                    event.setCancelled(true);
+                    // Có thể thêm message nếu muốn
+                    // attacker.sendMessage("§cKhông thể tấn công đồng đội!");
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Error checking team in DamageListener: " + e.getMessage());
+            }
         }
     }
 }
