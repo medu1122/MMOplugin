@@ -1,0 +1,104 @@
+# ROLEmmo Plugin Configuration
+
+# ========== ROLE CHANGE CONFIG ==========
+role_change:
+  # Cooldown để đổi role (tính bằng giờ)
+  cooldown_hours: 24
+  # Số coins cần trả để đổi role ngay (khi chưa đủ cooldown)
+  cost_coins: 10
+
+# ========== TITLES CONFIG ==========
+# Danh hiệu được unlock theo level cho từng role
+titles:
+  tanker:
+    1: "TANKER"
+    50: "Luyện Thể Sơ Kỳ"
+    120: "Thiết Giáp Cảnh"
+    340: "Kim Cang Hộ Thể"
+    570: "Huyền Giáp Tông Sư"
+    690: "Thánh Giáp Chiến Tôn"
+    860: "Bất Diệt Kim Thân"
+    990: "Vạn Cổ Hộ Đạo"
+  
+  dps:
+    1: "DPS"
+    50: "Sát Khí Sơ Thành"
+    120: "Huyết Chiến Giả"
+    340: "Tu La Đao Tôn"
+    570: "Chiến Vương"
+    690: "Ma Diệt Chi Chủ"
+    860: "Thí Thiên Chiến Thánh"
+    990: "Vạn Kiếp Sát Thần"
+  
+  healer:
+    1: "HEALER"
+    50: "Linh Y Sơ Cảnh"
+    120: "Thanh Tâm Hộ Pháp"
+    340: "Thánh Linh Sứ"
+    570: "Huyền Thiên Trị Giả"
+    690: "Thiên Đạo Hộ Mệnh"
+    860: "Thánh Quang Đại Tôn"
+    990: "Vạn Linh Chi Chủ"
+
+# ========== SKILL CONFIG ==========
+skills:
+  # Cost để upgrade skill từ level hiện tại lên level tiếp theo
+  # Level 0 -> 1 cần 1 điểm, Level 1 -> 2 cần 2 điểm, etc.
+  upgrade_costs:
+    0: 1  # Upgrade từ level 0 lên 1
+    1: 2  # Upgrade từ level 1 lên 2
+    2: 3  # Upgrade từ level 2 lên 3
+    3: 4  # Upgrade từ level 3 lên 4
+    4: 5  # Upgrade từ level 4 lên 5
+    5: 6  # Upgrade từ level 5 lên 6
+
+# ========== EXPERIENCE CONFIG ==========
+experience:
+  # Tỷ lệ convert exp nhân vật thành exp role (1.0 = 1:1)
+  conversion_rate: 1.0
+  # Base exp cần để lên mỗi level (công thức: level * base_exp_per_level)
+  base_exp_per_level: 100
+
+# ========== LUCKPERMS CONFIG ==========
+luckperms:
+  # Đường dẫn đến folder LuckPerms (để copy config khi cần)
+  # Để trống nếu không cần copy config
+  folder_path: ""
+  # Group names trong LuckPerms cho từng role
+  groups:
+    tanker: "tanker"
+    dps: "dps"
+    healer: "healer"
+
+# ========== DATABASE CONFIG ==========
+database:
+  # Tên file database (sẽ được lưu trong plugin data folder)
+  path: "rolemmo.db"
+
+# ========== MESSAGES ==========
+messages:
+  # Role selection
+  role_selected: "§aBạn đã chọn role: {role}"
+  role_already_selected: "§cBạn đã có role rồi! Sử dụng /role để xem thông tin."
+  role_change_success: "§aBạn đã đổi role thành công: {role}"
+  role_change_cooldown: "§cBạn cần đợi {time} để đổi role, hoặc trả {cost} coins để đổi ngay!"
+  role_change_not_enough_coins: "§cBạn không đủ {cost} coins để đổi role ngay!"
+  
+  # Level & Experience
+  level_up: "§aChúc mừng! Bạn đã lên level {level}!"
+  title_unlocked: "§aBạn đã unlock danh hiệu: {title}"
+  
+  # Skill
+  skill_upgraded: "§aBạn đã upgrade skill {skill} lên level {level}!"
+  skill_not_enough_points: "§cBạn không đủ skill points để upgrade!"
+  skill_max_level: "§cSkill đã đạt level tối đa!"
+  
+  # General
+  no_permission: "§cBạn không có quyền sử dụng lệnh này!"
+  player_not_found: "§cKhông tìm thấy người chơi!"
+  invalid_role: "§cRole không hợp lệ! Các role: TANKER, DPS, HEALER"
+  
+  # Admin
+  admin_give_level: "§aĐã set level {level} cho {player}!"
+  admin_give_skill_points: "§aĐã give {points} skill points cho {player}!"
+  admin_set_role: "§aĐã set role {role} cho {player}!"

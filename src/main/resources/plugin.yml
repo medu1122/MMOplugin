@@ -1,7 +1,63 @@
 name: ROLEmmo
 version: '1.0-SNAPSHOT'
-main: me.skibidi.rOLEmmo.ROLEmmo
+main: me.skibidi.rolemmo.ROLEmmo
 api-version: '1.21'
 authors: [ medu1122 ]
-description: plugin for mmo class
+description: Plugin for MMO role system with TANKER, DPS, HEALER classes
 website: github.com/medu1122
+
+# Soft dependencies - plugin will work without these but with limited functionality
+softdepend: [LuckPerms, moneyPlugin, ClanCore]
+
+commands:
+  role:
+    description: Main command for role system
+    usage: /<command> [select|info]
+    aliases: [r]
+    permission: rolemmo.use
+    permission-message: "§cBạn không có quyền sử dụng lệnh này!"
+  
+  roleadmin:
+    description: Admin commands for role system
+    usage: /<command> <subcommand>
+    aliases: [ra, rolea]
+    permission: rolemmo.admin
+    permission-message: "§cBạn không có quyền sử dụng lệnh này!"
+
+permissions:
+  rolemmo.*:
+    description: All ROLEmmo permissions
+    children:
+      rolemmo.use: true
+      rolemmo.admin: true
+      rolemmo.admin.*: true
+    default: false
+  
+  rolemmo.use:
+    description: Use role commands
+    default: true
+  
+  rolemmo.admin:
+    description: Admin role commands
+    default: op
+    children:
+      rolemmo.admin.givelevel: true
+      rolemmo.admin.giveskillpoints: true
+      rolemmo.admin.setrole: true
+      rolemmo.admin.takeskill: true
+  
+  rolemmo.admin.givelevel:
+    description: Give level to player
+    default: op
+  
+  rolemmo.admin.giveskillpoints:
+    description: Give skill points to player
+    default: op
+  
+  rolemmo.admin.setrole:
+    description: Set role for player
+    default: op
+  
+  rolemmo.admin.takeskill:
+    description: Take skill from player
+    default: op

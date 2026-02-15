@@ -1,0 +1,47 @@
+# LuckPerms Groups Configuration for ROLEmmo Plugin
+# File này có thể được copy vào plugins/LuckPerms/ nếu bạn sử dụng YAML storage
+# Hoặc plugin sẽ tự động tạo groups qua LuckPerms API
+
+# Lưu ý: Nếu LuckPerms đang dùng H2/SQLite database (mặc định), 
+# groups sẽ được tạo tự động qua API khi plugin khởi động.
+# File này chỉ để reference hoặc dùng khi chuyển sang YAML storage.
+
+groups:
+  # TANKER Role Group
+  tanker:
+    displayname: "&6&l[TANKER]"
+    weight: 10
+    permissions:
+      - "rolemmo.use"
+      - "rolemmo.tanker.*"
+    meta:
+      - key: "role"
+        value: "TANKER"
+      - key: "prefix"
+        value: "&6&l[&6TANKER&6&l]"
+  
+  # DPS Role Group
+  dps:
+    displayname: "&c&l[DPS]"
+    weight: 20
+    permissions:
+      - "rolemmo.use"
+      - "rolemmo.dps.*"
+    meta:
+      - key: "role"
+        value: "DPS"
+      - key: "prefix"
+        value: "&c&l[&cDPS&c&l]"
+  
+  # HEALER Role Group
+  healer:
+    displayname: "&a&l[HEALER]"
+    weight: 30
+    permissions:
+      - "rolemmo.use"
+      - "rolemmo.healer.*"
+    meta:
+      - key: "role"
+        value: "HEALER"
+      - key: "prefix"
+        value: "&a&l[&aHEALER&a&l]"
