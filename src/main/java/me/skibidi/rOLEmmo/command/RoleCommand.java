@@ -27,8 +27,14 @@ public class RoleCommand implements CommandExecutor {
 
         if (args.length == 0) {
             // Mở GUI role info hoặc role select
-            // TODO: Mở GUI (sẽ implement sau)
-            player.sendMessage("§eSử dụng: /role select <role> hoặc /role info");
+            Role currentRole = roleManager.getPlayerRole(player);
+            if (currentRole == null) {
+                // Chưa có role, mở role select GUI (sẽ implement sau)
+                player.sendMessage("§eSử dụng: /role select <TANKER|DPS|HEALER>");
+            } else {
+                // Đã có role, mở role info GUI
+                me.skibidi.rolemmo.gui.RoleInfoGUI.open(player, plugin);
+            }
             return true;
         }
 
@@ -44,8 +50,8 @@ public class RoleCommand implements CommandExecutor {
                 try {
                     Role role = Role.valueOf(args[1].toUpperCase());
                     if (roleManager.selectRole(player, role)) {
-                        // TODO: Mở GUI role info sau khi chọn
-                        player.sendMessage("§aChọn role thành công! Sử dụng /role info để xem thông tin.");
+                        // Mở GUI role info sau khi chọn
+                        me.skibidi.rolemmo.gui.RoleInfoGUI.open(player, plugin);
                     }
                 } catch (IllegalArgumentException e) {
                     player.sendMessage("§cRole không hợp lệ! Các role: TANKER, DPS, HEALER");
@@ -53,17 +59,17 @@ public class RoleCommand implements CommandExecutor {
             }
 
             case "info" -> {
-                // TODO: Mở GUI role info
                 Role currentRole = roleManager.getPlayerRole(player);
                 if (currentRole == null) {
                     player.sendMessage("§cBạn chưa chọn role! Sử dụng /role select <role>");
                 } else {
-                    player.sendMessage("§6=== Thông Tin Role ===");
-                    player.sendMessage("§eRole: " + currentRole.getFullDisplayName());
-                    player.sendMessage("§eLevel: " + roleManager.getRoleLevel(player, currentRole));
-                    player.sendMessage("§eExp: " + roleManager.getRoleExp(player, currentRole));
-                    player.sendMessage("§eSkill Points: " + roleManager.getSkillPoints(player));
+                    me.skibidi.rolemmo.gui.RoleInfoGUI.open(player, plugin);
                 }
+            }
+            
+            case "titles" -> {
+                // Mở Title GUI
+                me.skibidi.rolemmo.gui.TitleGUI.open(player, plugin);
             }
 
             case "change" -> {
