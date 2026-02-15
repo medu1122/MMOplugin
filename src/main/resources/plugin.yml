@@ -1,0 +1,7 @@
+name: ROLEmmo
+version: '1.0-SNAPSHOT'
+main: me.skibidi.rOLEmmo.ROLEmmo
+api-version: '1.21'
+authors: [ medu1122 ]
+description: plugin for mmo class
+website: github.com/medu1122
