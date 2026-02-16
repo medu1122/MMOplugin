@@ -109,12 +109,16 @@ public class PlayerDataListener implements Listener {
     }
 
     /**
-     * Give skill items cho player dựa trên role
+     * Give skill items cho player dựa trên role.
+     * Đảm bảo mỗi skill có ít nhất level 1 rồi mới give item (để skill dùng được ngay).
      */
     private void giveSkillItems(Player player, Role role) {
         if (skillManager == null) {
             return;
         }
+
+        // Mặc định mỗi skill của role có level 1 nếu chưa có (để có thể dùng ngay)
+        skillManager.ensureDefaultSkillLevels(player, role);
 
         var skills = skillManager.getSkills(role);
         for (Skill skill : skills) {

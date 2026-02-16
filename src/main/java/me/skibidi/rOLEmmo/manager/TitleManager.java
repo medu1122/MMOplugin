@@ -148,10 +148,15 @@ public class TitleManager {
 
             // Unlock title
             titleRepository.unlockTitle(player.getUniqueId(), title.getId(), title.getRole());
-            
-            player.sendMessage(configManager.getMessage("title_unlocked")
-                    .replace("{title}", title.getDisplayName()));
-            
+
+            // Thông báo đạt danh hiệu: broadcast lên chat cho mọi người thấy (trừ khi chỉ có 1 message config)
+            String broadcastMsg = configManager.getMessage("title_unlocked_broadcast", "§e{player} §ađã đạt danh hiệu §6{title}§a!")
+                    .replace("{player}", player.getName())
+                    .replace("{title}", title.getDisplayName());
+            for (Player online : plugin.getServer().getOnlinePlayers()) {
+                online.sendMessage(broadcastMsg);
+            }
+
             logger.info("Player " + player.getName() + " unlocked title: " + title.getId());
             return true;
         } catch (SQLException e) {

@@ -54,8 +54,8 @@
                                     <shadedPattern>me.skibidi.rolemmo.libs.sqlite</shadedPattern>
                                 </relocation>
                             </relocations>
-                            
-                            <minimizeJar>true</minimizeJar>
+                            <!-- false: Class.forName("...JDBC") không tạo reference bytecode nên minimizeJar sẽ xóa hết SQLite -->
+                            <minimizeJar>false</minimizeJar>
                         </configuration>
                     </execution>
                 </executions>

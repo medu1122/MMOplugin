@@ -25,7 +25,7 @@ public class SkillUpgradeGUI {
      */
     public static void open(Player player, ROLEmmo plugin, Skill skill) {
         if (skill == null) {
-            player.sendMessage("§cSkill không tồn tại!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cSkill không tồn tại!");
             return;
         }
 
@@ -70,7 +70,7 @@ public class SkillUpgradeGUI {
             inv.setItem(slot, levelItem);
         }
 
-        // Upgrade button (nếu có thể) với font lớn
+        // Nút Upgrade – luôn hiển thị tên "NÂNG CẤP SKILL", lore giải thích đủ/không đủ điểm
         if (currentLevel < skill.getMaxLevel()) {
             int requiredPoints = plugin.getConfigManager().getSkillUpgradeCost(currentLevel);
             boolean canUpgrade = skillPoints >= requiredPoints;
@@ -78,21 +78,18 @@ public class SkillUpgradeGUI {
             ItemStack upgradeButton = new ItemStack(canUpgrade ? Material.EMERALD : Material.REDSTONE);
             ItemMeta upgradeMeta = upgradeButton.getItemMeta();
             if (upgradeMeta != null) {
-                upgradeMeta.setDisplayName(canUpgrade ? 
-                        GUIUtil.createLargeTitle("✓ UPGRADE SKILL", GUIUtil.GRADIENT_GREEN) :
-                        GUIUtil.createLargeTitle("✖ KHÔNG ĐỦ ĐIỂM", GUIUtil.GRADIENT_RED));
+                upgradeMeta.setDisplayName(GUIUtil.createLargeTitle("NANG CAP SKILL", canUpgrade ? GUIUtil.GRADIENT_GREEN : GUIUtil.GRADIENT_RED));
                 List<String> lore = new ArrayList<>();
                 lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                 lore.add(" ");
-                lore.add(GUIUtil.COLOR_SECONDARY + "§lTừ level " + GUIUtil.gradientText(String.valueOf(currentLevel), GUIUtil.GRADIENT_BLUE) + 
-                        GUIUtil.COLOR_MUTED + " lên " + GUIUtil.gradientText(String.valueOf(currentLevel + 1), GUIUtil.GRADIENT_BLUE));
-                lore.add(GUIUtil.COLOR_WARNING + "§lCần: " + GUIUtil.gradientText(requiredPoints + " điểm", GUIUtil.GRADIENT_GOLD));
-                lore.add(GUIUtil.COLOR_HIGHLIGHT + "§lBạn có: " + GUIUtil.gradientText(skillPoints + " điểm", GUIUtil.GRADIENT_PURPLE));
+                lore.add(GUIUtil.COLOR_SECONDARY + "§lTu level " + currentLevel + " len " + (currentLevel + 1));
+                lore.add(GUIUtil.COLOR_WARNING + "§lCan: " + requiredPoints + " diem");
+                lore.add(GUIUtil.COLOR_HIGHLIGHT + "§lBan co: " + skillPoints + " diem");
                 lore.add(" ");
                 if (canUpgrade) {
-                    lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để upgrade!");
+                    lore.add(GUIUtil.COLOR_SUCCESS + "§lClick de nang cap!");
                 } else {
-                    lore.add(GUIUtil.COLOR_ERROR + "§l✖ Không đủ skill points!");
+                    lore.add(GUIUtil.COLOR_ERROR + "§lKhong du diem! Can them " + (requiredPoints - skillPoints) + " diem.");
                 }
                 lore.add(" ");
                 lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

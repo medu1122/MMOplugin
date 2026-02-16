@@ -1,0 +1,18 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/paper"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 1 }, "model": "rolemmo:item/icon_role_dps" },
+    { "predicate": { "custom_model_data": 2 }, "model": "rolemmo:item/icon_role_tanker" },
+    { "predicate": { "custom_model_data": 3 }, "model": "rolemmo:item/icon_role_healer" },
+    { "predicate": { "custom_model_data": 4 }, "model": "rolemmo:item/icon_role_logo" },
+    { "predicate": { "custom_model_data": 5 }, "model": "rolemmo:item/icon_btn_change" },
+    { "predicate": { "custom_model_data": 6 }, "model": "rolemmo:item/icon_btn_skills" },
+    { "predicate": { "custom_model_data": 7 }, "model": "rolemmo:item/icon_btn_select_skill" },
+    { "predicate": { "custom_model_data": 8 }, "model": "rolemmo:item/icon_btn_titles" },
+    { "predicate": { "custom_model_data": 9 }, "model": "rolemmo:item/icon_btn_close" },
+    { "predicate": { "custom_model_data": 10 }, "model": "rolemmo:item/icon_skill_fireball" }
+  ]
+}

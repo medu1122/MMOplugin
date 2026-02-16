@@ -1,0 +1,22 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "custom_model_data",
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/paper"
+    },
+    "cases": [
+      { "when": "1", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_role_dps" } },
+      { "when": "2", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_role_tanker" } },
+      { "when": "3", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_role_healer" } },
+      { "when": "4", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_role_logo" } },
+      { "when": "5", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_btn_change" } },
+      { "when": "6", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_btn_skills" } },
+      { "when": "7", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_btn_select_skill" } },
+      { "when": "8", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_btn_titles" } },
+      { "when": "9", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_btn_close" } },
+      { "when": "10", "model": { "type": "minecraft:model", "model": "rolemmo:item/icon_skill_fireball" } }
+    ]
+  }
+}

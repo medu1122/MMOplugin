@@ -84,8 +84,8 @@ public class LevelManager {
                 if (player.isOnline()) {
                     titleManager.checkAndUnlockTitles(player, role, currentLevel);
                     
-                    // Thông báo level up
-                    player.sendMessage(configManager.getMessage("level_up")
+                    // Thông báo level up (chỉ Action Bar, không spam chat)
+                    me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("level_up")
                             .replace("{level}", String.valueOf(currentLevel)));
                 }
                 

@@ -87,6 +87,8 @@ messages:
   # Level & Experience
   level_up: "§aChúc mừng! Bạn đã lên level {level}!"
   title_unlocked: "§aBạn đã unlock danh hiệu: {title}"
+  # Broadcast khi player đạt danh hiệu (hiện lên chat chung cho mọi người)
+  title_unlocked_broadcast: "§e{player} §ađã đạt danh hiệu §6{title}§a!"
   
   # Skill
   skill_upgraded: "§aBạn đã upgrade skill {skill} lên level {level}!"

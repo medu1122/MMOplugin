@@ -69,7 +69,7 @@ public class RoleAdminCommand implements CommandExecutor {
                                 .replace("{player}", target.getName())
                                 .replace("{level}", String.valueOf(level)));
                         if (target.isOnline()) {
-                            target.sendMessage("§aAdmin đã set level " + level + " cho role " + role.getDisplayName() + " của bạn!");
+                            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(target, "§aAdmin đã set level " + level + " cho role " + role.getDisplayName() + " của bạn!");
                         }
                     } else {
                         sender.sendMessage("§cLỗi khi set level! Vui lòng thử lại sau.");
@@ -108,7 +108,7 @@ public class RoleAdminCommand implements CommandExecutor {
                             .replace("{player}", target.getName())
                             .replace("{points}", String.valueOf(points)));
                     if (target.isOnline()) {
-                        target.sendMessage("§aAdmin đã give " + points + " skill points cho bạn!");
+                        me.skibidi.rolemmo.util.MessageUtil.sendActionBar(target, "§aAdmin đã give " + points + " skill points cho bạn!");
                     }
                 } catch (NumberFormatException e) {
                     sender.sendMessage("§cAmount phải là số!");
@@ -139,7 +139,7 @@ public class RoleAdminCommand implements CommandExecutor {
                                     .replace("{player}", target.getName())
                                     .replace("{role}", role.getFullDisplayName()));
                             if (target.isOnline()) {
-                                target.sendMessage("§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
+                                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(target, "§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
                             }
                         } else {
                             sender.sendMessage("§cLỗi khi set role! Vui lòng thử lại sau.");
@@ -151,7 +151,7 @@ public class RoleAdminCommand implements CommandExecutor {
                                     .replace("{player}", target.getName())
                                     .replace("{role}", role.getFullDisplayName()));
                             if (target.isOnline()) {
-                                target.sendMessage("§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
+                                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(target, "§aAdmin đã set role " + role.getFullDisplayName() + " cho bạn!");
                             }
                         } else {
                             sender.sendMessage("§cLỗi khi set role! Vui lòng thử lại sau.");
@@ -183,7 +183,7 @@ public class RoleAdminCommand implements CommandExecutor {
                 
                 sender.sendMessage("§aĐã remove skill item " + skillId + " khỏi " + target.getName());
                 if (target.isOnline()) {
-                    target.sendMessage("§cAdmin đã remove skill item " + skillId + " của bạn!");
+                    me.skibidi.rolemmo.util.MessageUtil.sendActionBar(target, "§cAdmin đã remove skill item " + skillId + " của bạn!");
                 }
             }
 
@@ -223,7 +223,7 @@ public class RoleAdminCommand implements CommandExecutor {
                     
                     sender.sendMessage("§aĐã give " + exp + " exp cho role " + role.getDisplayName() + " của " + target.getName());
                     if (target.isOnline()) {
-                        target.sendMessage("§aAdmin đã give " + exp + " exp cho role " + role.getDisplayName() + " của bạn!");
+                        me.skibidi.rolemmo.util.MessageUtil.sendActionBar(target, "§aAdmin đã give " + exp + " exp cho role " + role.getDisplayName() + " của bạn!");
                     }
                 } catch (NumberFormatException e) {
                     sender.sendMessage("§cAmount phải là số!");

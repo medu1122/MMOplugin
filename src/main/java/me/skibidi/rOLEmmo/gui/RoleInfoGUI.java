@@ -7,12 +7,12 @@ import me.skibidi.rolemmo.manager.TitleManager;
 import me.skibidi.rolemmo.model.Role;
 import me.skibidi.rolemmo.model.Title;
 import me.skibidi.rolemmo.util.GUIUtil;
+import me.skibidi.rolemmo.util.RolemmoIcons;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,174 +32,103 @@ public class RoleInfoGUI {
 
         Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null) {
-            player.sendMessage("§cBạn chưa chọn role! Sử dụng /role select");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn chưa chọn role! Sử dụng /role select");
             return;
         }
 
         Inventory inv = Bukkit.createInventory(null, 54, "§6Role Info");
 
-        // Role info ở center với font lớn và màu sắc đẹp
-        ItemStack roleItem = new ItemStack(getMaterialForRole(currentRole));
-        ItemMeta roleMeta = roleItem.getItemMeta();
-        if (roleMeta != null) {
-            String roleIcon = GUIUtil.getRoleIcon(currentRole);
-            String[] roleGradient = getGradientForRole(currentRole);
-            roleMeta.setDisplayName(GUIUtil.createLargeTitle(roleIcon + " " + currentRole.getDisplayName(), roleGradient));
-            
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            
-            int level = roleManager.getRoleLevel(player, currentRole);
-            int exp = roleManager.getRoleExp(player, currentRole);
-            int requiredExp = levelManager.getRequiredExpForNextLevel(player, currentRole);
-            int skillPoints = roleManager.getSkillPoints(player);
-            
-            // Level với gradient
-            lore.add(GUIUtil.COLOR_INFO + "§l📊 LEVEL: " + GUIUtil.gradientText(String.valueOf(level), GUIUtil.GRADIENT_GOLD) + 
-                    GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText("999", GUIUtil.GRADIENT_GOLD));
-            
-            // Exp với progress bar
-            lore.add(GUIUtil.COLOR_SECONDARY + "§l⭐ EXP: " + GUIUtil.gradientText(String.valueOf(exp), GUIUtil.GRADIENT_BLUE) + 
-                    GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText(String.valueOf(requiredExp), GUIUtil.GRADIENT_BLUE));
-            
-            if (level < 999) {
-                double progress = (double) exp / requiredExp;
-                String progressBar = GUIUtil.createProgressBar(progress, 20, GUIUtil.COLOR_SUCCESS, GUIUtil.COLOR_MUTED);
-                lore.add(" " + progressBar + " §e" + String.format("%.1f", progress * 100) + "%");
-            }
-            
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_HIGHLIGHT + "§l✨ SKILL POINTS: " + GUIUtil.gradientText(String.valueOf(skillPoints), GUIUtil.GRADIENT_PURPLE));
-            
-            // Active title
-            Title activeTitle = titleManager.getActiveTitle(player);
-            if (activeTitle != null) {
-                lore.add(" ");
-                lore.add(GUIUtil.COLOR_PRIMARY + "§l🏆 DANH HIỆU: " + GUIUtil.gradientText(activeTitle.getDisplayName(), GUIUtil.GRADIENT_GOLD));
-            }
-            
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            
-            roleMeta.setLore(lore);
-            roleItem.setItemMeta(roleMeta);
+        // Role info ở center – dùng icon từ resource pack (Paper + CustomModelData)
+        String[] roleGradient = getGradientForRole(currentRole);
+        String roleDisplayName = GUIUtil.createBoldRoleName(currentRole);
+        List<String> roleLore = new ArrayList<>();
+        roleLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        roleLore.add(" ");
+        int level = roleManager.getRoleLevel(player, currentRole);
+        int exp = roleManager.getRoleExp(player, currentRole);
+        int requiredExp = levelManager.getRequiredExpForNextLevel(player, currentRole);
+        int skillPoints = roleManager.getSkillPoints(player);
+        roleLore.add(GUIUtil.COLOR_INFO + "§l📊 LEVEL: " + GUIUtil.gradientText(String.valueOf(level), GUIUtil.GRADIENT_GOLD) + GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText("999", GUIUtil.GRADIENT_GOLD));
+        roleLore.add(GUIUtil.COLOR_SECONDARY + "§l⭐ EXP: " + GUIUtil.gradientText(String.valueOf(exp), GUIUtil.GRADIENT_BLUE) + GUIUtil.COLOR_MUTED + " / " + GUIUtil.gradientText(String.valueOf(requiredExp), GUIUtil.GRADIENT_BLUE));
+        if (level < 999) {
+            double progress = (double) exp / requiredExp;
+            roleLore.add(" " + GUIUtil.createProgressBar(progress, 20, GUIUtil.COLOR_SUCCESS, GUIUtil.COLOR_MUTED) + " §e" + String.format("%.1f", progress * 100) + "%");
         }
-        inv.setItem(22, roleItem);
+        roleLore.add(" ");
+        roleLore.add(GUIUtil.COLOR_HIGHLIGHT + "§l✨ SKILL POINTS: " + GUIUtil.gradientText(String.valueOf(skillPoints), GUIUtil.GRADIENT_PURPLE));
+        Title activeTitle = titleManager.getActiveTitle(player);
+        if (activeTitle != null) {
+            roleLore.add(" ");
+            roleLore.add(GUIUtil.COLOR_PRIMARY + "§l🏆 DANH HIỆU: " + GUIUtil.gradientText(activeTitle.getDisplayName(), GUIUtil.GRADIENT_GOLD));
+        }
+        roleLore.add(" ");
+        roleLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        inv.setItem(22, RolemmoIcons.createIcon(RolemmoIcons.getRoleIconId(currentRole), roleDisplayName, roleLore));
 
-        // Skills button với icon và màu sắc đẹp
-        ItemStack skillsButton = new ItemStack(Material.ENCHANTED_BOOK);
-        ItemMeta skillsMeta = skillsButton.getItemMeta();
-        if (skillsMeta != null) {
-            skillsMeta.setDisplayName(GUIUtil.createLargeTitle("📚 XEM SKILLS", GUIUtil.GRADIENT_BLUE));
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_INFO + "§lClick để xem tất cả skills");
-            lore.add(GUIUtil.COLOR_MUTED + "của role " + GUIUtil.gradientText(currentRole.getDisplayName(), getGradientForRole(currentRole)));
-            int skillCount = plugin.getSkillManager().getSkills(currentRole).size();
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "§lSố skills: " + GUIUtil.gradientText(String.valueOf(skillCount), GUIUtil.GRADIENT_BLUE));
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            skillsMeta.setLore(lore);
-            skillsButton.setItemMeta(skillsMeta);
-        }
-        inv.setItem(29, skillsButton);
-
-        // Chọn Skill button với icon và màu sắc đẹp
-        ItemStack selectSkillButton = new ItemStack(Material.BLAZE_ROD);
-        ItemMeta selectSkillMeta = selectSkillButton.getItemMeta();
-        if (selectSkillMeta != null) {
-            selectSkillMeta.setDisplayName(GUIUtil.createLargeTitle("⚡ CHỌN SKILL", GUIUtil.GRADIENT_PURPLE));
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            String selectedSkillId = plugin.getSkillManager().getSelectedSkillId(player);
-            if (selectedSkillId != null) {
-                var selectedSkill = plugin.getSkillManager().getSkill(selectedSkillId);
-                if (selectedSkill != null) {
-                    lore.add(GUIUtil.COLOR_SUCCESS + "§lSkill đang dùng:");
-                    lore.add(GUIUtil.gradientText("  " + selectedSkill.getName(), GUIUtil.GRADIENT_GOLD));
-                }
-            } else {
-                lore.add(GUIUtil.COLOR_ERROR + "§lSkill đang dùng:");
-                lore.add(GUIUtil.COLOR_MUTED + "  Chưa chọn");
+        // Skills button – xem danh sách + chọn + upgrade (một nút gộp)
+        List<String> skillsLore = new ArrayList<>();
+        skillsLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        skillsLore.add(" ");
+        skillsLore.add(GUIUtil.COLOR_INFO + "§lClick để xem danh sách skills");
+        skillsLore.add(GUIUtil.COLOR_MUTED + "của role " + GUIUtil.createBoldRoleName(currentRole));
+        String selectedSkillId = plugin.getSkillManager().getSelectedSkillId(player);
+        if (selectedSkillId != null) {
+            var selectedSkill = plugin.getSkillManager().getSkill(selectedSkillId);
+            if (selectedSkill != null) {
+                skillsLore.add(" ");
+                skillsLore.add(GUIUtil.COLOR_SUCCESS + "§lSkill đang dùng: " + selectedSkill.getName());
             }
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "§lClick để chọn skill!");
-            lore.add(GUIUtil.COLOR_MUTED + "Cooldown: " + GUIUtil.COLOR_WARNING + "30 phút");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            selectSkillMeta.setLore(lore);
-            selectSkillButton.setItemMeta(selectSkillMeta);
         }
-        inv.setItem(30, selectSkillButton);
+        skillsLore.add(" ");
+        skillsLore.add(GUIUtil.COLOR_SECONDARY + "§lTrong đó: chọn skill, xem chi tiết, upgrade");
+        skillsLore.add(" ");
+        skillsLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        inv.setItem(29, RolemmoIcons.createIcon(RolemmoIcons.ICON_BTN_SKILLS, GUIUtil.createLargeTitle("SKILLS", GUIUtil.GRADIENT_BLUE), skillsLore));
 
-        // Titles button
-        ItemStack titlesButton = new ItemStack(Material.NAME_TAG);
-        ItemMeta titlesMeta = titlesButton.getItemMeta();
-        if (titlesMeta != null) {
-            titlesMeta.setDisplayName("§6Danh Hiệu");
-            List<String> lore = new ArrayList<>();
-            List<Title> unlockedTitles = titleManager.getUnlockedTitles(player);
-            lore.add("§7Click để xem danh hiệu");
-            lore.add("§7Đã unlock: §e" + unlockedTitles.size());
-            if (titleManager.getActiveTitle(player) != null) {
-                lore.add("§7Đang dùng: " + titleManager.getActiveTitle(player).getDisplayName());
-            }
-            titlesMeta.setLore(lore);
-            titlesButton.setItemMeta(titlesMeta);
+        // Titles button – icon từ pack
+        List<String> titlesLore = new ArrayList<>();
+        List<Title> unlockedTitles = titleManager.getUnlockedTitles(player);
+        titlesLore.add("§7Click để xem danh hiệu");
+        titlesLore.add("§7Đã unlock: §e" + unlockedTitles.size());
+        if (titleManager.getActiveTitle(player) != null) {
+            titlesLore.add("§7Đang dùng: " + titleManager.getActiveTitle(player).getDisplayName());
         }
-        inv.setItem(31, titlesButton);
+        inv.setItem(31, RolemmoIcons.createIcon(RolemmoIcons.ICON_BTN_TITLES, "§6Danh Hiệu", titlesLore));
 
-        // Change role button với icon và màu sắc đẹp
-        ItemStack changeRoleButton = new ItemStack(Material.ENDER_PEARL);
-        ItemMeta changeMeta = changeRoleButton.getItemMeta();
-        if (changeMeta != null) {
-            changeMeta.setDisplayName(GUIUtil.createLargeTitle("🔄 ĐỔI ROLE", GUIUtil.GRADIENT_PURPLE));
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            if (roleManager.canChangeRoleForFree(player)) {
-                lore.add(GUIUtil.COLOR_SUCCESS + "§lCó thể đổi miễn phí!");
-                lore.add(" ");
-                lore.add(GUIUtil.COLOR_SECONDARY + "§lClick để đổi role");
-            } else if (roleManager.canChangeRole(player)) {
-                long cost = plugin.getConfigManager().getRoleChangeCost();
-                lore.add(GUIUtil.COLOR_WARNING + "§lCost: " + GUIUtil.gradientText(cost + " coins", GUIUtil.GRADIENT_GOLD));
-                lore.add(GUIUtil.COLOR_MUTED + "Hoặc đợi: " + GUIUtil.COLOR_INFO + roleManager.getTimeUntilCanChange(player));
-                lore.add(" ");
-                lore.add(GUIUtil.COLOR_SECONDARY + "§lClick để đổi role");
-            } else {
-                lore.add(GUIUtil.COLOR_ERROR + "§lChưa thể đổi role!");
-                lore.add(GUIUtil.COLOR_MUTED + "Cần đợi: " + GUIUtil.COLOR_INFO + roleManager.getTimeUntilCanChange(player));
-                lore.add(" ");
-                lore.add(GUIUtil.COLOR_MUTED + "Click để xem thông tin");
-            }
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            changeMeta.setLore(lore);
-            changeRoleButton.setItemMeta(changeMeta);
+        // Change role button – icon từ pack
+        List<String> changeLore = new ArrayList<>();
+        changeLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        changeLore.add(" ");
+        if (roleManager.canChangeRoleForFree(player)) {
+            changeLore.add(GUIUtil.COLOR_SUCCESS + "§lCó thể đổi miễn phí!");
+            changeLore.add(" ");
+            changeLore.add(GUIUtil.COLOR_SECONDARY + "§lClick để đổi role");
+        } else if (roleManager.canChangeRole(player)) {
+            long cost = plugin.getConfigManager().getRoleChangeCost();
+            changeLore.add(GUIUtil.COLOR_WARNING + "§lCost: " + GUIUtil.gradientText(cost + " coins", GUIUtil.GRADIENT_GOLD));
+            changeLore.add(GUIUtil.COLOR_MUTED + "Hoặc đợi: " + GUIUtil.COLOR_INFO + roleManager.getTimeUntilCanChange(player));
+            changeLore.add(" ");
+            changeLore.add(GUIUtil.COLOR_SECONDARY + "§lClick để đổi role");
+        } else {
+            changeLore.add(GUIUtil.COLOR_ERROR + "§lChưa thể đổi role!");
+            changeLore.add(GUIUtil.COLOR_MUTED + "Cần đợi: " + GUIUtil.COLOR_INFO + roleManager.getTimeUntilCanChange(player));
+            changeLore.add(" ");
+            changeLore.add(GUIUtil.COLOR_MUTED + "Click để xem thông tin");
         }
-        inv.setItem(33, changeRoleButton);
+        changeLore.add(" ");
+        changeLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        inv.setItem(33, RolemmoIcons.createIcon(RolemmoIcons.ICON_BTN_CHANGE, GUIUtil.createLargeTitle("DOI ROLE", GUIUtil.GRADIENT_PURPLE), changeLore));
 
-        // Close button với icon
-        ItemStack close = new ItemStack(Material.BARRIER);
-        ItemMeta closeMeta = close.getItemMeta();
-        if (closeMeta != null) {
-            closeMeta.setDisplayName(GUIUtil.COLOR_ERROR + "§l✖ ĐÓNG");
-            close.setItemMeta(closeMeta);
-        }
-        inv.setItem(49, close);
+        // Close button – icon từ pack
+        inv.setItem(49, RolemmoIcons.createIcon(RolemmoIcons.ICON_BTN_CLOSE, GUIUtil.COLOR_ERROR + "§lDONG", null));
 
         // Glass panes decoration với màu sắc đa dạng
         ItemStack glass = GUIUtil.createGlassPane("gray");
 
-        // Fill empty slots
+        // Fill empty slots (chỉ còn 1 nút Skills tại 29, bỏ slot 30)
         for (int i = 0; i < 54; i++) {
             if (inv.getItem(i) == null) {
-                if (i != 22 && i != 29 && i != 30 && i != 31 && i != 33 && i != 49) {
+                if (i != 22 && i != 29 && i != 31 && i != 33 && i != 49) {
                     inv.setItem(i, glass);
                 }
             }

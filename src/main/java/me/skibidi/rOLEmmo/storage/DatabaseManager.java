@@ -39,7 +39,8 @@ public class DatabaseManager {
         }
 
         try {
-            Class.forName("org.sqlite.JDBC");
+            // Driver bị shade/relocate thành me.skibidi.rolemmo.libs.sqlite (xem pom.xml)
+            Class.forName("me.skibidi.rolemmo.libs.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
             Logger logger = plugin.getLogger();
             logger.info("Connected to SQLite database: " + dbPath);

@@ -94,6 +94,27 @@ public class SkillManager {
     }
 
     /**
+     * Đảm bảo mỗi skill của role có ít nhất level 1 (để player có thể dùng skill ngay).
+     * Gọi khi give skill items hoặc khi player có role.
+     */
+    public void ensureDefaultSkillLevels(Player player, Role role) {
+        if (player == null || role == null) return;
+        List<Skill> skills = getSkills(role);
+        if (skills == null) return;
+        for (Skill skill : skills) {
+            int level = getPlayerSkillLevel(player, skill.getId());
+            if (level < 1) {
+                try {
+                    skillRepository.setSkillLevel(player.getUniqueId(), skill.getId(), 1);
+                    logger.fine("Set default level 1 for skill " + skill.getId() + " for " + player.getName());
+                } catch (SQLException e) {
+                    logger.warning("Failed to init skill level for " + skill.getId() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
      * Upgrade skill cho player
      * Synchronized để tránh race condition khi upgrade cùng lúc
      */
@@ -104,13 +125,13 @@ public class SkillManager {
 
         Skill skill = getSkill(skillId);
         if (skill == null) {
-            player.sendMessage("§cSkill không tồn tại!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cSkill không tồn tại!");
             return false;
         }
 
         int currentLevel = getPlayerSkillLevel(player, skillId);
         if (currentLevel >= skill.getMaxLevel()) {
-            player.sendMessage(plugin.getConfigManager().getMessage("skill_max_level"));
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, plugin.getConfigManager().getMessage("skill_max_level"));
             return false;
         }
 
@@ -119,7 +140,7 @@ public class SkillManager {
         int playerPoints = roleManager.getSkillPoints(player);
 
         if (playerPoints < requiredPoints) {
-            player.sendMessage(plugin.getConfigManager().getMessage("skill_not_enough_points"));
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, plugin.getConfigManager().getMessage("skill_not_enough_points"));
             return false;
         }
 
@@ -128,7 +149,7 @@ public class SkillManager {
             // Note: addSkillPoints đã synchronized, nhưng vẫn double check để đảm bảo
             int actualCurrentPoints = roleManager.getSkillPoints(player);
             if (actualCurrentPoints < requiredPoints) {
-                player.sendMessage(plugin.getConfigManager().getMessage("skill_not_enough_points"));
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, plugin.getConfigManager().getMessage("skill_not_enough_points"));
                 return false;
             }
             
@@ -145,7 +166,7 @@ public class SkillManager {
                 me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, skill, newLevel);
             }
 
-            player.sendMessage(plugin.getConfigManager().getMessage("skill_upgraded")
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, plugin.getConfigManager().getMessage("skill_upgraded")
                     .replace("{skill}", skill.getName())
                     .replace("{level}", String.valueOf(newLevel)));
 
@@ -154,7 +175,7 @@ public class SkillManager {
         } catch (SQLException e) {
             logger.severe("Failed to upgrade skill for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi khi upgrade skill! Vui lòng thử lại sau.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi upgrade skill! Vui lòng thử lại sau.");
             return false;
         }
     }
@@ -180,20 +201,20 @@ public class SkillManager {
         // Check role match (quan trọng: đảm bảo skill thuộc role hiện tại)
         Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null || skill.getRole() != currentRole) {
-            player.sendMessage("§cSkill này không thuộc role hiện tại của bạn!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cSkill này không thuộc role hiện tại của bạn!");
             return false;
         }
 
         // Check cooldown
         if (isOnCooldown(player, skillId)) {
             long remaining = getCooldownRemaining(player, skillId);
-            player.sendMessage("§cSkill đang cooldown! Còn lại: " + remaining + "s");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cSkill đang cooldown! Còn lại: " + remaining + "s");
             return false;
         }
 
         int level = getPlayerSkillLevel(player, skillId);
         if (level < 1) {
-            player.sendMessage("§cBạn chưa học skill này!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn chưa học skill này!");
             return false;
         }
 
@@ -351,14 +372,14 @@ public class SkillManager {
 
         Skill skill = getSkill(skillId);
         if (skill == null) {
-            player.sendMessage("§cSkill không tồn tại!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cSkill không tồn tại!");
             return false;
         }
 
         // Check role match
         Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null || skill.getRole() != currentRole) {
-            player.sendMessage("§cSkill này không thuộc role hiện tại của bạn!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cSkill này không thuộc role hiện tại của bạn!");
             return false;
         }
 
@@ -369,15 +390,14 @@ public class SkillManager {
 
         if (timeSinceChange < cooldownMs) {
             long remainingMinutes = (cooldownMs - timeSinceChange) / (60 * 1000);
-            player.sendMessage("§cBạn cần đợi thêm §e" + remainingMinutes + " phút §cđể đổi skill!");
-            player.sendMessage("§7Thời gian còn lại: §e" + formatTime(cooldownMs - timeSinceChange));
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn cần đợi thêm §e" + remainingMinutes + " phút §cđể đổi skill! §7(" + formatTime(cooldownMs - timeSinceChange) + ")");
             return false;
         }
 
         // Check skill level
         int skillLevel = getPlayerSkillLevel(player, skillId);
         if (skillLevel < 1) {
-            player.sendMessage("§cBạn chưa học skill này! Hãy upgrade skill trước.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn chưa học skill này! Hãy upgrade skill trước.");
             return false;
         }
 
@@ -394,14 +414,14 @@ public class SkillManager {
                     me.skibidi.rolemmo.util.SkillItemUtil.ensureSkillItem(player, skill, skillLevel);
                 }
 
-                player.sendMessage("§aĐã chọn skill: §e" + skill.getName());
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§aĐã chọn skill: §e" + skill.getName());
                 logger.info("Player " + player.getName() + " selected skill: " + skillId);
                 return true;
             }
         } catch (SQLException e) {
             logger.severe("Failed to select skill: " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi khi chọn skill! Vui lòng thử lại sau.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi chọn skill! Vui lòng thử lại sau.");
         }
 
         return false;

@@ -4,12 +4,12 @@ import me.skibidi.rolemmo.ROLEmmo;
 import me.skibidi.rolemmo.manager.RoleManager;
 import me.skibidi.rolemmo.model.Role;
 import me.skibidi.rolemmo.util.GUIUtil;
+import me.skibidi.rolemmo.util.RolemmoIcons;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,68 +34,47 @@ public class RoleSelectGUI {
 
         Inventory inv = Bukkit.createInventory(null, 54, GUIUtil.createLargeTitle("CHỌN ROLE", GUIUtil.GRADIENT_GOLD));
 
-        // TANKER role với font lớn và màu sắc đẹp
-        ItemStack tankerItem = new ItemStack(Material.SHIELD);
-        ItemMeta tankerMeta = tankerItem.getItemMeta();
-        if (tankerMeta != null) {
-            tankerMeta.setDisplayName(GUIUtil.createLargeTitle("🛡️ TANKER", GUIUtil.GRADIENT_BLUE));
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_INFO + "§lHệ Hộ Thể / Kim Cang");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "§lRole chuyên phòng thủ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "và bảo vệ đồng đội");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để chọn role này!");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            tankerMeta.setLore(lore);
-            tankerItem.setItemMeta(tankerMeta);
-        }
-        inv.setItem(20, tankerItem);
+        // TANKER role – icon từ resource pack
+        List<String> tankerLore = new ArrayList<>();
+        tankerLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        tankerLore.add(" ");
+        tankerLore.add(GUIUtil.COLOR_INFO + "§lHệ Hộ Thể / Kim Cang");
+        tankerLore.add(" ");
+        tankerLore.add(GUIUtil.COLOR_SECONDARY + "§lRole chuyên phòng thủ");
+        tankerLore.add(GUIUtil.COLOR_SECONDARY + "và bảo vệ đồng đội");
+        tankerLore.add(" ");
+        tankerLore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để chọn role này!");
+        tankerLore.add(" ");
+        tankerLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        inv.setItem(20, RolemmoIcons.createIcon(RolemmoIcons.ICON_ROLE_TANKER, GUIUtil.createBoldRoleName(Role.TANKER), tankerLore));
 
-        // DPS role với font lớn và màu sắc đẹp
-        ItemStack dpsItem = new ItemStack(Material.DIAMOND_SWORD);
-        ItemMeta dpsMeta = dpsItem.getItemMeta();
-        if (dpsMeta != null) {
-            dpsMeta.setDisplayName(GUIUtil.createLargeTitle("⚔️ DPS", GUIUtil.GRADIENT_RED));
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_ERROR + "§lHệ Sát Phạt / Chiến Đạo");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "§lRole chuyên gây sát thương");
-            lore.add(GUIUtil.COLOR_SECONDARY + "và tiêu diệt kẻ thù");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để chọn role này!");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            dpsMeta.setLore(lore);
-            dpsItem.setItemMeta(dpsMeta);
-        }
-        inv.setItem(22, dpsItem);
+        // DPS role – icon từ resource pack
+        List<String> dpsLore = new ArrayList<>();
+        dpsLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        dpsLore.add(" ");
+        dpsLore.add(GUIUtil.COLOR_ERROR + "§lHệ Sát Phạt / Chiến Đạo");
+        dpsLore.add(" ");
+        dpsLore.add(GUIUtil.COLOR_SECONDARY + "§lRole chuyên gây sát thương");
+        dpsLore.add(GUIUtil.COLOR_SECONDARY + "và tiêu diệt kẻ thù");
+        dpsLore.add(" ");
+        dpsLore.add(GUIUtil.COLOR_SUCCESS + "§lClick để chọn role này!");
+        dpsLore.add(" ");
+        dpsLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        inv.setItem(22, RolemmoIcons.createIcon(RolemmoIcons.ICON_ROLE_DPS, GUIUtil.createBoldRoleName(Role.DPS), dpsLore));
 
-        // HEALER role với font lớn và màu sắc đẹp
-        ItemStack healerItem = new ItemStack(Material.GOLDEN_APPLE);
-        ItemMeta healerMeta = healerItem.getItemMeta();
-        if (healerMeta != null) {
-            healerMeta.setDisplayName(GUIUtil.createLargeTitle("✝️ HEALER", GUIUtil.GRADIENT_GREEN));
-            List<String> lore = new ArrayList<>();
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SUCCESS + "§lHệ Linh Lực / Thánh Đạo");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "§lRole chuyên hỗ trợ");
-            lore.add(GUIUtil.COLOR_SECONDARY + "và hồi máu đồng đội");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để chọn role này!");
-            lore.add(" ");
-            lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            healerMeta.setLore(lore);
-            healerItem.setItemMeta(healerMeta);
-        }
-        inv.setItem(24, healerItem);
+        // HEALER role – icon từ resource pack
+        List<String> healerLore = new ArrayList<>();
+        healerLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        healerLore.add(" ");
+        healerLore.add(GUIUtil.COLOR_SUCCESS + "§lHệ Linh Lực / Thánh Đạo");
+        healerLore.add(" ");
+        healerLore.add(GUIUtil.COLOR_SECONDARY + "§lRole chuyên hỗ trợ");
+        healerLore.add(GUIUtil.COLOR_SECONDARY + "và hồi máu đồng đội");
+        healerLore.add(" ");
+        healerLore.add(GUIUtil.COLOR_SUCCESS + "§lClick để chọn role này!");
+        healerLore.add(" ");
+        healerLore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        inv.setItem(24, RolemmoIcons.createIcon(RolemmoIcons.ICON_ROLE_HEALER, GUIUtil.createBoldRoleName(Role.HEALER), healerLore));
 
         // Glass panes decoration với màu sắc đa dạng
         ItemStack glass = GUIUtil.createGlassPane("gray");

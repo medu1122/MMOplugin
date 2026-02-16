@@ -113,20 +113,49 @@ public class SkillItemUtil {
     }
 
     /**
-     * Lấy skill ID từ item
+     * Lấy skill ID từ item (từ PDC).
      */
     public static String getSkillId(ItemStack item) {
-        if (!isSkillItem(item)) {
+        if (item == null || item.getType() == Material.AIR) {
             return null;
         }
-
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return null;
         }
-
         PersistentDataContainer container = meta.getPersistentDataContainer();
-        return container.get(getSkillIdKey(), PersistentDataType.STRING);
+        String fromPdc = container.get(getSkillIdKey(), PersistentDataType.STRING);
+        if (fromPdc != null && !fromPdc.isEmpty()) {
+            return fromPdc;
+        }
+        return null;
+    }
+
+    /**
+     * Fallback: lấy skill ID từ lore (dòng "§7Skill: Tên skill") khi PDC bị mất (vd. 1.21).
+     */
+    public static String getSkillIdFromLore(ItemStack item, me.skibidi.rolemmo.manager.SkillManager skillManager, Role role) {
+        if (item == null || skillManager == null || role == null) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasLore()) {
+            return null;
+        }
+        List<String> lore = meta.getLore();
+        if (lore == null) {
+            return null;
+        }
+        for (Skill skill : skillManager.getSkills(role)) {
+            if (skill == null) continue;
+            String expectedLine = "§7Skill: " + skill.getName();
+            for (String line : lore) {
+                if (expectedLine.equals(line)) {
+                    return skill.getId();
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -174,7 +203,7 @@ public class SkillItemUtil {
                 player.getInventory().setItem(emptySlot, skillItem);
             } else {
                 // Inventory đầy, thông báo
-                player.sendMessage("§cTúi đồ đầy! Không thể thêm skill item.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cTúi đồ đầy! Không thể thêm skill item.");
             }
         }
     }

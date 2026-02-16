@@ -55,12 +55,12 @@ public class GUIListener implements Listener {
         boolean isTitleGUI = strippedTitle.contains("DANH HIỆU") || title.contains("§6Danh Hiệu");
         boolean isSkillsGUI = strippedTitle.contains("SKILLS") || (title.contains("§6Skills") && !title.contains("Chọn"));
         boolean isUpgradeGUI = strippedTitle.contains("UPGRADE") || title.startsWith("§6Upgrade:");
-        boolean isSkillSelectionGUI = strippedTitle.contains("CHỌN SKILL") || title.contains("§6Chọn Skill");
+        boolean isSkillDetailGUI = strippedTitle.contains("CHI TIET SKILL");
         boolean isRoleSelectGUI = strippedTitle.contains("CHỌN ROLE") || title.contains("§6Chọn Role");
         boolean isRoleChangeGUI = strippedTitle.contains("ĐỔI ROLE") || title.contains("§6Đổi Role");
         
         if (isRoleInfoGUI || isTitleGUI || isSkillsGUI || isUpgradeGUI || 
-            isSkillSelectionGUI || isRoleSelectGUI || isRoleChangeGUI) {
+            isSkillDetailGUI || isRoleSelectGUI || isRoleChangeGUI) {
             event.setCancelled(true);
 
             if (clicked == null || clicked.getType() == Material.AIR) return;
@@ -81,9 +81,9 @@ public class GUIListener implements Listener {
             else if (isUpgradeGUI) {
                 handleSkillUpgradeClick(player, event.getSlot(), clicked, title);
             }
-            // Skill Selection GUI
-            else if (isSkillSelectionGUI) {
-                handleSkillSelectionClick(player, event.getSlot(), clicked, title);
+            // Skill Detail GUI (chi tiết 1 skill + Upgrade + Sử dụng)
+            else if (isSkillDetailGUI) {
+                handleSkillDetailClick(player, event.getSlot(), clicked);
             }
             // Role Select GUI
             else if (isRoleSelectGUI) {
@@ -100,32 +100,26 @@ public class GUIListener implements Listener {
      * Xử lý click trong Role Info GUI
      */
     private void handleRoleInfoClick(Player player, int slot, ItemStack clicked) {
-        // Close button
-        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+        // Close button (BARRIER hoặc Paper icon từ resource pack)
+        if (slot == 49 && (clicked.getType() == Material.BARRIER || clicked.getType() == Material.PAPER)) {
             player.closeInventory();
             return;
         }
 
-        // Skills button
-        if (slot == 29 && clicked.getType() == Material.ENCHANTED_BOOK) {
+        // Skills button (một nút: xem danh sách + chọn + upgrade)
+        if (slot == 29 && (clicked.getType() == Material.ENCHANTED_BOOK || clicked.getType() == Material.PAPER)) {
             me.skibidi.rolemmo.gui.SkillListGUI.open(player, plugin);
             return;
         }
 
-        // Chọn Skill button
-        if (slot == 30 && clicked.getType() == Material.BLAZE_ROD) {
-            me.skibidi.rolemmo.gui.SkillSelectionGUI.open(player, plugin);
-            return;
-        }
-
-        // Titles button
-        if (slot == 31 && clicked.getType() == Material.NAME_TAG) {
+        // Titles button (NAME_TAG hoặc Paper icon)
+        if (slot == 31 && (clicked.getType() == Material.NAME_TAG || clicked.getType() == Material.PAPER)) {
             TitleGUI.open(player, plugin);
             return;
         }
 
-        // Change role button
-        if (slot == 33 && clicked.getType() == Material.ENDER_PEARL) {
+        // Change role button (ENDER_PEARL hoặc Paper icon)
+        if (slot == 33 && (clicked.getType() == Material.ENDER_PEARL || clicked.getType() == Material.PAPER)) {
             me.skibidi.rolemmo.gui.RoleChangeGUI.open(player, plugin);
             return;
         }
@@ -223,8 +217,8 @@ public class GUIListener implements Listener {
             return;
         }
 
-        // Close button
-        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+        // Close button (BARRIER hoặc Paper icon)
+        if (slot == 49 && (clicked.getType() == Material.BARRIER || clicked.getType() == Material.PAPER)) {
             player.closeInventory();
             return;
         }
@@ -255,8 +249,8 @@ public class GUIListener implements Listener {
 
                 if (index >= 0 && index < skills.size()) {
                     var skill = skills.get(index);
-                    // Mở Skill Upgrade GUI
-                    me.skibidi.rolemmo.gui.SkillUpgradeGUI.open(player, plugin, skill);
+                    // Mở Skill Detail GUI (chi tiết + Upgrade + Sử dụng skill)
+                    me.skibidi.rolemmo.gui.SkillDetailGUI.open(player, plugin, skill);
                 }
                 return;
             }
@@ -264,11 +258,63 @@ public class GUIListener implements Listener {
     }
 
     /**
+     * Xử lý click trong Skill Detail GUI (chi tiết 1 skill)
+     */
+    private void handleSkillDetailClick(Player player, int slot, ItemStack clicked) {
+        // Back button
+        if (slot == 48 && clicked.getType() == Material.ARROW) {
+            me.skibidi.rolemmo.gui.SkillDetailGUI.clearDetail(player);
+            me.skibidi.rolemmo.gui.SkillListGUI.open(player, plugin);
+            return;
+        }
+
+        // Close button (BARRIER hoặc Paper icon)
+        if (slot == 49 && (clicked.getType() == Material.BARRIER || clicked.getType() == Material.PAPER)) {
+            me.skibidi.rolemmo.gui.SkillDetailGUI.clearDetail(player);
+            player.closeInventory();
+            return;
+        }
+
+        // Nút Upgrade (slot 30)
+        if (slot == 30 && (clicked.getType() == Material.EMERALD || clicked.getType() == Material.REDSTONE)) {
+            me.skibidi.rolemmo.model.Skill skill = me.skibidi.rolemmo.gui.SkillDetailGUI.getSkillForDetail(player);
+            if (skill != null) {
+                int level = plugin.getSkillManager().getPlayerSkillLevel(player, skill.getId());
+                if (level < skill.getMaxLevel()) {
+                    int required = plugin.getConfigManager().getSkillUpgradeCost(level);
+                    if (plugin.getRoleManager().getSkillPoints(player) >= required) {
+                        try {
+                            plugin.getSkillManager().upgradeSkill(player, skill.getId());
+                            me.skibidi.rolemmo.gui.SkillDetailGUI.open(player, plugin, skill);
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error upgrading skill: " + e.getMessage());
+                            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi nâng cấp skill!");
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
+        // Nút Sử dụng skill này (slot 32, Paper icon)
+        if (slot == 32 && (clicked.getType() == Material.PAPER || clicked.getType() == Material.BLAZE_ROD)) {
+            me.skibidi.rolemmo.model.Skill skill = me.skibidi.rolemmo.gui.SkillDetailGUI.getSkillForDetail(player);
+            if (skill != null && plugin.getSkillManager().selectSkill(player, skill.getId())) {
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§aĐã chọn skill: " + skill.getName());
+                me.skibidi.rolemmo.gui.SkillDetailGUI.clearDetail(player);
+                player.closeInventory();
+            }
+            return;
+        }
+    }
+
+    /**
      * Xử lý click trong Skill Upgrade GUI
      */
     private void handleSkillUpgradeClick(Player player, int slot, ItemStack clicked, String inventoryTitle) {
-        // Back button
+        // Back button (về danh sách skill hoặc Role Info)
         if (slot == 48 && clicked.getType() == Material.ARROW) {
+            me.skibidi.rolemmo.gui.SkillDetailGUI.clearDetail(player);
             me.skibidi.rolemmo.gui.SkillListGUI.open(player, plugin);
             return;
         }
@@ -295,11 +341,11 @@ public class GUIListener implements Listener {
                         }
                     } catch (Exception e) {
                         plugin.getLogger().warning("Error upgrading skill: " + e.getMessage());
-                        player.sendMessage("§cLỗi khi nâng cấp skill! Vui lòng thử lại.");
+                        me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi nâng cấp skill! Vui lòng thử lại.");
                     }
                 }
             } else {
-                player.sendMessage("§cKhông tìm thấy skill! Vui lòng thử lại.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cKhông tìm thấy skill! Vui lòng thử lại.");
             }
             return;
         }
@@ -380,96 +426,33 @@ public class GUIListener implements Listener {
     }
 
     /**
-     * Xử lý click trong Skill Selection GUI
-     */
-    private void handleSkillSelectionClick(Player player, int slot, ItemStack clicked, String inventoryTitle) {
-        // Back button
-        if (slot == 48 && clicked.getType() == Material.ARROW) {
-            RoleInfoGUI.open(player, plugin);
-            return;
-        }
-
-        // Close button
-        if (slot == 49 && clicked.getType() == Material.BARRIER) {
-            player.closeInventory();
-            return;
-        }
-
-        // Skill items
-        int[] skillSlots = {
-            10, 11, 12, 13, 14, 15, 16,
-            19, 20, 21, 22, 23, 24, 25,
-            28, 29, 30, 31, 32, 33, 34
-        };
-
-        for (int skillSlot : skillSlots) {
-            if (slot == skillSlot) {
-                // Tìm skill tương ứng
-                Role currentRole = roleManager.getPlayerRole(player);
-                if (currentRole == null) {
-                    return;
-                }
-
-                var skills = plugin.getSkillManager().getSkills(currentRole);
-                int index = -1;
-                for (int i = 0; i < skillSlots.length; i++) {
-                    if (skillSlots[i] == slot) {
-                        index = i;
-                        break;
-                    }
-                }
-
-                if (index >= 0 && index < skills.size()) {
-                    var skill = skills.get(index);
-                    // Chọn skill
-                    if (plugin.getSkillManager().selectSkill(player, skill.getId())) {
-                        // Refresh GUI
-                        me.skibidi.rolemmo.gui.SkillSelectionGUI.open(player, plugin);
-                    }
-                }
-                return;
-            }
-        }
-    }
-
-    /**
      * Xử lý click trong Role Select GUI
      */
     private void handleRoleSelectClick(Player player, int slot, ItemStack clicked) {
-        // TANKER
-        if (slot == 20 && clicked.getType() == Material.SHIELD) {
+        // Slot dùng Paper + CustomModelData (icon pack); vẫn chấp nhận material cũ
+        boolean tanker = (clicked.getType() == Material.SHIELD || clicked.getType() == Material.PAPER) && slot == 20;
+        boolean dps    = (clicked.getType() == Material.DIAMOND_SWORD || clicked.getType() == Material.PAPER) && slot == 22;
+        boolean healer = (clicked.getType() == Material.GOLDEN_APPLE || clicked.getType() == Material.PAPER) && slot == 24;
+
+        if (tanker) {
             if (roleManager.selectRole(player, me.skibidi.rolemmo.model.Role.TANKER)) {
                 player.closeInventory();
-                // Mở RoleInfoGUI sau khi chọn
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    RoleInfoGUI.open(player, plugin);
-                }, 5L);
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> RoleInfoGUI.open(player, plugin), 5L);
             }
             return;
         }
-
-        // DPS
-        if (slot == 22 && clicked.getType() == Material.DIAMOND_SWORD) {
+        if (dps) {
             if (roleManager.selectRole(player, me.skibidi.rolemmo.model.Role.DPS)) {
                 player.closeInventory();
-                // Mở RoleInfoGUI sau khi chọn
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    RoleInfoGUI.open(player, plugin);
-                }, 5L);
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> RoleInfoGUI.open(player, plugin), 5L);
             }
             return;
         }
-
-        // HEALER
-        if (slot == 24 && clicked.getType() == Material.GOLDEN_APPLE) {
+        if (healer) {
             if (roleManager.selectRole(player, me.skibidi.rolemmo.model.Role.HEALER)) {
                 player.closeInventory();
-                // Mở RoleInfoGUI sau khi chọn
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    RoleInfoGUI.open(player, plugin);
-                }, 5L);
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> RoleInfoGUI.open(player, plugin), 5L);
             }
-            return;
         }
     }
 
@@ -483,55 +466,39 @@ public class GUIListener implements Listener {
             return;
         }
 
-        // Close button
-        if (slot == 49 && clicked.getType() == Material.BARRIER) {
+        // Close button (BARRIER hoặc Paper icon)
+        if (slot == 49 && (clicked.getType() == Material.BARRIER || clicked.getType() == Material.PAPER)) {
             player.closeInventory();
             return;
         }
 
-        // TANKER
-        if (slot == 20 && clicked.getType() == Material.SHIELD) {
+        // TANKER / DPS / HEALER (SHIELD, DIAMOND_SWORD, GOLDEN_APPLE hoặc Paper icon)
+        boolean tanker = (clicked.getType() == Material.SHIELD || clicked.getType() == Material.PAPER) && slot == 20;
+        boolean dps    = (clicked.getType() == Material.DIAMOND_SWORD || clicked.getType() == Material.PAPER) && slot == 22;
+        boolean healer = (clicked.getType() == Material.GOLDEN_APPLE || clicked.getType() == Material.PAPER) && slot == 24;
+
+        if (tanker) {
             me.skibidi.rolemmo.model.Role targetRole = me.skibidi.rolemmo.model.Role.TANKER;
-            if (roleManager.getPlayerRole(player) != targetRole) {
-                if (roleManager.changeRole(player, targetRole)) {
-                    player.closeInventory();
-                    // Mở RoleInfoGUI sau khi đổi
-                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                        RoleInfoGUI.open(player, plugin);
-                    }, 5L);
-                }
+            if (roleManager.getPlayerRole(player) != targetRole && roleManager.changeRole(player, targetRole)) {
+                player.closeInventory();
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> RoleInfoGUI.open(player, plugin), 5L);
             }
             return;
         }
-
-        // DPS
-        if (slot == 22 && clicked.getType() == Material.DIAMOND_SWORD) {
+        if (dps) {
             me.skibidi.rolemmo.model.Role targetRole = me.skibidi.rolemmo.model.Role.DPS;
-            if (roleManager.getPlayerRole(player) != targetRole) {
-                if (roleManager.changeRole(player, targetRole)) {
-                    player.closeInventory();
-                    // Mở RoleInfoGUI sau khi đổi
-                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                        RoleInfoGUI.open(player, plugin);
-                    }, 5L);
-                }
+            if (roleManager.getPlayerRole(player) != targetRole && roleManager.changeRole(player, targetRole)) {
+                player.closeInventory();
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> RoleInfoGUI.open(player, plugin), 5L);
             }
             return;
         }
-
-        // HEALER
-        if (slot == 24 && clicked.getType() == Material.GOLDEN_APPLE) {
+        if (healer) {
             me.skibidi.rolemmo.model.Role targetRole = me.skibidi.rolemmo.model.Role.HEALER;
-            if (roleManager.getPlayerRole(player) != targetRole) {
-                if (roleManager.changeRole(player, targetRole)) {
-                    player.closeInventory();
-                    // Mở RoleInfoGUI sau khi đổi
-                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                        RoleInfoGUI.open(player, plugin);
-                    }, 5L);
-                }
+            if (roleManager.getPlayerRole(player) != targetRole && roleManager.changeRole(player, targetRole)) {
+                player.closeInventory();
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> RoleInfoGUI.open(player, plugin), 5L);
             }
-            return;
         }
     }
 

@@ -167,7 +167,15 @@ public class GUIUtil {
     }
 
     /**
-     * Tạo icon emoji cho role
+     * Tên role in đậm, chỉ một từ: TANKER, DPS, HEALER. Không dùng ký tự đặc biệt/emoji.
+     */
+    public static String createBoldRoleName(me.skibidi.rolemmo.model.Role role) {
+        if (role == null) return "§7§l???";
+        return role.getColor() + "§l" + role.getDisplayName().toUpperCase();
+    }
+
+    /**
+     * Tạo icon emoji cho role (dùng khi cần, tránh dùng trong tên hiển thị chính)
      */
     public static String getRoleIcon(me.skibidi.rolemmo.model.Role role) {
         return switch (role) {

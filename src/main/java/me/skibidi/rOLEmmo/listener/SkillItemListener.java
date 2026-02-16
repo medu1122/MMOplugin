@@ -37,7 +37,7 @@ public class SkillItemListener implements Listener {
         ItemStack item = event.getItemDrop().getItemStack();
         if (SkillItemUtil.isSkillItem(item)) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cKhông thể vứt skill item!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(event.getPlayer(), "§cKhông thể vứt skill item!");
         }
     }
 
@@ -62,7 +62,7 @@ public class SkillItemListener implements Listener {
             // Cho phép click trong player inventory, nhưng không cho move ra ngoài
             if (event.getInventory().getType() != InventoryType.PLAYER) {
                 event.setCancelled(true);
-                player.sendMessage("§cKhông thể di chuyển skill item ra khỏi túi đồ!");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cKhông thể di chuyển skill item ra khỏi túi đồ!");
                 return;
             }
         }
@@ -72,7 +72,7 @@ public class SkillItemListener implements Listener {
             // Cho phép trong player inventory, nhưng không cho move ra ngoài
             if (event.getInventory().getType() != InventoryType.PLAYER) {
                 event.setCancelled(true);
-                player.sendMessage("§cKhông thể di chuyển skill item ra khỏi túi đồ!");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cKhông thể di chuyển skill item ra khỏi túi đồ!");
             }
         }
     }
@@ -95,7 +95,7 @@ public class SkillItemListener implements Listener {
             // Cho phép drag trong player inventory, nhưng không cho drag ra ngoài
             if (event.getInventory() != null && event.getInventory().getType() != InventoryType.PLAYER) {
                 event.setCancelled(true);
-                player.sendMessage("§cKhông thể di chuyển skill item ra khỏi túi đồ!");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cKhông thể di chuyển skill item ra khỏi túi đồ!");
             }
         }
     }
@@ -140,33 +140,43 @@ public class SkillItemListener implements Listener {
     }
 
     /**
-     * Right-click skill item để sử dụng skill
+     * Right-click skill item để sử dụng skill.
+     * Kiểm tra cả item từ event và cả hai tay (main/off) để tránh mất event trên một số bản.
      */
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event == null) return;
-        
+
         Player player = event.getPlayer();
         if (player == null || !player.isOnline()) return;
-        
-        ItemStack item = event.getItem();
-        if (item == null || !SkillItemUtil.isSkillItem(item)) {
+
+        // Chỉ xử lý right-click (air hoặc block)
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
 
-        // Chỉ xử lý right-click
-        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+        // Kiểm tra item: ưu tiên item từ event, sau đó main hand, rồi off hand
+        ItemStack item = event.getItem();
+        if (item == null || item.getType() == Material.AIR) {
+            item = player.getInventory().getItemInMainHand();
+        }
+        if (item == null || item.getType() == Material.AIR) {
+            item = player.getInventory().getItemInOffHand();
+        }
+        if (item == null || item.getType() == Material.AIR) {
+            return;
+        }
+
+        String skillId = SkillItemUtil.getSkillId(item);
+        if (skillId == null || skillId.isEmpty()) {
+            skillId = SkillItemUtil.getSkillIdFromLore(item, plugin.getSkillManager(), plugin.getRoleManager().getPlayerRole(player));
+        }
+        if (skillId == null || skillId.isEmpty()) {
             return;
         }
 
         event.setCancelled(true);
 
-        String skillId = SkillItemUtil.getSkillId(item);
-        if (skillId == null || skillId.isEmpty()) {
-            return;
-        }
-
-        // Execute skill
         try {
             var skillManager = plugin.getSkillManager();
             if (skillManager != null) {
@@ -174,7 +184,7 @@ public class SkillItemListener implements Listener {
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Error executing skill " + skillId + " for player " + player.getName() + ": " + e.getMessage());
-            player.sendMessage("§cLỗi khi sử dụng skill! Vui lòng thử lại sau.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi sử dụng skill! Vui lòng thử lại sau.");
         }
     }
 

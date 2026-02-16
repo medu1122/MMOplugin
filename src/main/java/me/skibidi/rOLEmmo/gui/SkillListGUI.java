@@ -5,6 +5,7 @@ import me.skibidi.rolemmo.manager.SkillManager;
 import me.skibidi.rolemmo.model.Role;
 import me.skibidi.rolemmo.model.Skill;
 import me.skibidi.rolemmo.util.GUIUtil;
+import me.skibidi.rolemmo.util.RolemmoIcons;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -29,9 +30,11 @@ public class SkillListGUI {
 
         Role currentRole = roleManager.getPlayerRole(player);
         if (currentRole == null) {
-            player.sendMessage("§cBạn chưa chọn role!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn chưa chọn role!");
             return;
         }
+
+        skillManager.ensureDefaultSkillLevels(player, currentRole);
 
         List<Skill> skills = skillManager.getSkills(currentRole);
         if (skills.isEmpty()) {
@@ -88,14 +91,8 @@ public class SkillListGUI {
         }
         inv.setItem(48, back);
 
-        // Close button
-        ItemStack close = new ItemStack(Material.BARRIER);
-        ItemMeta closeMeta = close.getItemMeta();
-        if (closeMeta != null) {
-            closeMeta.setDisplayName("§cĐóng");
-            close.setItemMeta(closeMeta);
-        }
-        inv.setItem(49, close);
+        // Close button – icon từ pack
+        inv.setItem(49, RolemmoIcons.createIcon(RolemmoIcons.ICON_BTN_CLOSE, "§cDong", null));
 
         // Glass panes decoration
         ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
@@ -142,14 +139,7 @@ public class SkillListGUI {
         }
         inv.setItem(22, infoItem);
 
-        // Close button
-        ItemStack close = new ItemStack(Material.BARRIER);
-        ItemMeta closeMeta = close.getItemMeta();
-        if (closeMeta != null) {
-            closeMeta.setDisplayName("§cĐóng");
-            close.setItemMeta(closeMeta);
-        }
-        inv.setItem(49, close);
+        inv.setItem(49, RolemmoIcons.createIcon(RolemmoIcons.ICON_BTN_CLOSE, "§cDong", null));
 
         // Glass panes
         ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
@@ -173,13 +163,8 @@ public class SkillListGUI {
      */
     private static ItemStack createSkillItem(Skill skill, int currentLevel, SkillManager skillManager, 
                                             me.skibidi.rolemmo.manager.RoleManager roleManager, Player player, ROLEmmo plugin) {
-        Material material = getMaterialForSkill(skill);
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        
-        if (meta != null) {
-            String skillIcon = GUIUtil.getSkillIcon(skill.getId());
-            meta.setDisplayName(GUIUtil.createLargeTitle(skillIcon + " " + skill.getName(), GUIUtil.GRADIENT_PURPLE));
+        String skillIcon = GUIUtil.getSkillIcon(skill.getId());
+        String displayName = GUIUtil.createLargeTitle(skillIcon + " " + skill.getName(), GUIUtil.GRADIENT_PURPLE);
             
             List<String> lore = new ArrayList<>();
             lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -199,14 +184,21 @@ public class SkillListGUI {
             }
             
             lore.add(" ");
-            lore.add(GUIUtil.COLOR_SUCCESS + "§l✓ Click để xem chi tiết và upgrade!");
+            lore.add(GUIUtil.COLOR_SUCCESS + "§lClick de xem chi tiet, upgrade va su dung!");
             lore.add(" ");
             lore.add(GUIUtil.COLOR_MUTED + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            
+
+        // Dùng icon từ pack cho Fireball, còn lại dùng material
+        if ("fireball".equalsIgnoreCase(skill.getId())) {
+            return RolemmoIcons.createIcon(RolemmoIcons.ICON_SKILL_FIREBALL, displayName, lore);
+        }
+        ItemStack item = new ItemStack(getMaterialForSkill(skill));
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(displayName);
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
-
         return item;
     }
 

@@ -67,7 +67,7 @@ public class RoleManager {
         }
 
         if (hasRole(player)) {
-            player.sendMessage(configManager.getMessage("role_already_selected"));
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("role_already_selected"));
             return false;
         }
 
@@ -117,7 +117,7 @@ public class RoleManager {
                 }
             }, 1L);
 
-            player.sendMessage(configManager.getMessage("role_selected")
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("role_selected")
                     .replace("{role}", role.getFullDisplayName()));
 
             logger.info("Player " + player.getName() + " (" + player.getUniqueId() + ") selected role: " + role.name());
@@ -125,12 +125,12 @@ public class RoleManager {
         } catch (SQLException e) {
             logger.severe("Failed to select role for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi khi chọn role! Vui lòng thử lại sau.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi chọn role! Vui lòng thử lại sau.");
             return false;
         } catch (Exception e) {
             logger.severe("Unexpected error in selectRole for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi không mong đợi! Vui lòng liên hệ admin.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi không mong đợi! Vui lòng liên hệ admin.");
             return false;
         }
     }
@@ -150,7 +150,7 @@ public class RoleManager {
         }
 
         if (currentRole == newRole) {
-            player.sendMessage("§cBạn đã có role này rồi!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn đã có role này rồi!");
             return false;
         }
 
@@ -163,7 +163,7 @@ public class RoleManager {
 
             if (data.getUuid() == null || !data.getUuid().equals(player.getUniqueId())) {
                 logger.severe("Data UUID mismatch for player " + player.getName());
-                player.sendMessage("§cLỗi dữ liệu! Vui lòng liên hệ admin.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi dữ liệu! Vui lòng liên hệ admin.");
                 return false;
             }
 
@@ -184,7 +184,7 @@ public class RoleManager {
                 }
             }, 1L);
 
-            player.sendMessage(configManager.getMessage("role_change_success")
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("role_change_success")
                     .replace("{role}", newRole.getFullDisplayName()));
 
             logger.info("Admin force changed role for " + player.getName() + " from " + 
@@ -193,12 +193,12 @@ public class RoleManager {
         } catch (SQLException e) {
             logger.severe("Database error in forceChangeRole for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi database! Vui lòng thử lại sau.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi database! Vui lòng thử lại sau.");
             return false;
         } catch (Exception e) {
             logger.severe("Unexpected error in forceChangeRole for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi không mong đợi! Vui lòng liên hệ admin.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi không mong đợi! Vui lòng liên hệ admin.");
             return false;
         }
     }
@@ -219,14 +219,14 @@ public class RoleManager {
         }
 
         if (currentRole == newRole) {
-            player.sendMessage("§cBạn đã có role này rồi!");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cBạn đã có role này rồi!");
             return false;
         }
 
         // Check cooldown và cost
         if (!canChangeRole(player)) {
             long cost = configManager.getRoleChangeCost();
-            player.sendMessage(configManager.getMessage("role_change_cooldown")
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("role_change_cooldown")
                     .replace("{cost}", String.valueOf(cost))
                     .replace("{time}", getTimeUntilCanChange(player)));
             return false;
@@ -237,24 +237,24 @@ public class RoleManager {
             long cost = configManager.getRoleChangeCost();
             if (cost <= 0) {
                 logger.warning("Invalid role change cost: " + cost);
-                player.sendMessage("§cLỗi cấu hình! Vui lòng liên hệ admin.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi cấu hình! Vui lòng liên hệ admin.");
                 return false;
             }
 
             if (!moneyPluginManager.isEnabled()) {
-                player.sendMessage("§cHệ thống coins không khả dụng! Không thể đổi role.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cHệ thống coins không khả dụng! Không thể đổi role.");
                 return false;
             }
 
             if (!moneyPluginManager.hasEnough(player, cost)) {
-                player.sendMessage(configManager.getMessage("role_change_not_enough_coins")
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("role_change_not_enough_coins")
                         .replace("{cost}", String.valueOf(cost)));
                 return false;
             }
 
             // Trừ coins
             if (!moneyPluginManager.removeCoins(player, cost)) {
-                player.sendMessage("§cLỗi khi trừ coins! Vui lòng thử lại sau.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi khi trừ coins! Vui lòng thử lại sau.");
                 return false;
             }
             logger.info("Player " + player.getName() + " paid " + cost + " coins to change role");
@@ -271,7 +271,7 @@ public class RoleManager {
             // Validate data
             if (data.getUuid() == null || !data.getUuid().equals(player.getUniqueId())) {
                 logger.severe("Data UUID mismatch for player " + player.getName());
-                player.sendMessage("§cLỗi dữ liệu! Vui lòng liên hệ admin.");
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi dữ liệu! Vui lòng liên hệ admin.");
                 return false;
             }
 
@@ -295,7 +295,7 @@ public class RoleManager {
                 }
             }, 1L);
 
-            player.sendMessage(configManager.getMessage("role_change_success")
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, configManager.getMessage("role_change_success")
                     .replace("{role}", newRole.getFullDisplayName()));
 
             logger.info("Player " + player.getName() + " (" + player.getUniqueId() + ") changed role from " + 
@@ -304,12 +304,12 @@ public class RoleManager {
         } catch (SQLException e) {
             logger.severe("Database error in changeRole for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi database! Vui lòng thử lại sau.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi database! Vui lòng thử lại sau.");
             return false;
         } catch (Exception e) {
             logger.severe("Unexpected error in changeRole for player " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            player.sendMessage("§cLỗi không mong đợi! Vui lòng liên hệ admin.");
+            me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cLỗi không mong đợi! Vui lòng liên hệ admin.");
             return false;
         }
     }
@@ -443,13 +443,16 @@ public class RoleManager {
     }
 
     /**
-     * Give skill items cho player dựa trên role
+     * Give skill items cho player dựa trên role.
+     * Đảm bảo mỗi skill có ít nhất level 1 (không có level 0).
      */
     private void giveSkillItems(Player player, Role role) {
         me.skibidi.rolemmo.manager.SkillManager skillManager = plugin.getSkillManager();
         if (skillManager == null) {
             return;
         }
+
+        skillManager.ensureDefaultSkillLevels(player, role);
 
         java.util.List<me.skibidi.rolemmo.model.Skill> skills = skillManager.getSkills(role);
         for (me.skibidi.rolemmo.model.Skill skill : skills) {
