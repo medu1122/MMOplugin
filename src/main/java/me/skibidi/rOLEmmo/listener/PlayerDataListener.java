@@ -40,6 +40,12 @@ public class PlayerDataListener implements Listener {
             if (roleManager.getLuckPermsManager().isEnabled()) {
                 // Set lại LuckPerms group khi join (đảm bảo sync)
                 roleManager.getLuckPermsManager().setPlayerGroup(player, currentRole);
+                // Đồng bộ prefix danh hiệu (role + title) để hiện trong chat/tab
+                me.skibidi.rolemmo.manager.TitleManager titleManager = plugin.getTitleManager();
+                if (titleManager != null) {
+                    me.skibidi.rolemmo.model.Title activeTitle = titleManager.getActiveTitle(player);
+                    roleManager.getLuckPermsManager().setPlayerRoleTitlePrefix(player, currentRole, activeTitle);
+                }
             }
             
             // Give skill items sau 1 tick (đảm bảo inventory đã load)

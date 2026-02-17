@@ -132,6 +132,38 @@ public class SkillItemUtil {
     }
 
     /**
+     * Kiểm tra item có giống skill item (có lore "§7Skill: ...") để gợi ý khi không dùng được.
+     */
+    public static boolean looksLikeSkillItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasLore()) {
+            return false;
+        }
+        List<String> lore = item.getItemMeta().getLore();
+        if (lore == null) return false;
+        for (String line : lore) {
+            if (line != null && line.startsWith("§7Skill: ")) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Gắn lại PDC cho item (khi đã nhận diện skill từ lore). Cập nhật item trong tay player.
+     */
+    public static void fixSkillItemPdc(Player player, ItemStack item, String skillId, org.bukkit.inventory.EquipmentSlot hand) {
+        if (player == null || item == null || skillId == null || skillId.isEmpty()) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        meta.getPersistentDataContainer().set(getSkillIdKey(), PersistentDataType.STRING, skillId);
+        meta.getPersistentDataContainer().set(getSkillItemKey(), PersistentDataType.BOOLEAN, true);
+        item.setItemMeta(meta);
+        if (hand == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+            player.getInventory().setItemInOffHand(item);
+        } else {
+            player.getInventory().setItemInMainHand(item);
+        }
+    }
+
+    /**
      * Fallback: lấy skill ID từ lore (dòng "§7Skill: Tên skill") khi PDC bị mất (vd. 1.21).
      */
     public static String getSkillIdFromLore(ItemStack item, me.skibidi.rolemmo.manager.SkillManager skillManager, Role role) {

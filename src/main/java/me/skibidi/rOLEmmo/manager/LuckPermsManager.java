@@ -15,6 +15,8 @@ import net.luckperms.api.node.types.PrefixNode;
 import net.luckperms.api.node.types.WeightNode;
 import net.luckperms.api.util.Tristate;
 import org.bukkit.entity.Player;
+
+import me.skibidi.rolemmo.model.Title;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Optional;
@@ -259,6 +261,59 @@ public class LuckPermsManager {
             }
         }).exceptionally(throwable -> {
             plugin.getLogger().warning("Error removing group for player " + playerName + ": " + throwable.getMessage());
+            return null;
+        });
+    }
+
+    /**
+     * Priority dùng cho prefix "role + danh hiệu" trên user (cao hơn group để hiển thị).
+     */
+    private static final int ROLEMMO_TITLE_PREFIX_PRIORITY = 127;
+
+    /**
+     * Đặt prefix cho user = role + danh hiệu (để hiện trong chat/tab).
+     * Gọi khi player equip hoặc gỡ danh hiệu. Không cần config thêm gì trong LuckPerms.
+     */
+    public void setPlayerRoleTitlePrefix(Player player, Role role, Title title) {
+        if (!isEnabled() || player == null || !player.isOnline() || role == null) {
+            return;
+        }
+
+        final String prefixFinal;
+        if (title != null) {
+            prefixFinal = role.getColor() + "[" + role.getDisplayName() + "] " + title.getDisplayName() + " ";
+        } else {
+            prefixFinal = role.getColor() + "[" + role.getDisplayName() + "] ";
+        }
+
+        UUID uuid = player.getUniqueId();
+        String playerName = player.getName();
+
+        api.getUserManager().loadUser(uuid).thenAcceptAsync(user -> {
+            try {
+                Player online = plugin.getServer().getPlayer(uuid);
+                if (online == null || !online.isOnline()) return;
+                if (user == null) return;
+
+                // Xóa prefix cũ do ROLEmmo set (cùng priority)
+                for (Node node : user.getNodes()) {
+                    if (node instanceof PrefixNode
+                            && ((PrefixNode) node).getPriority() == ROLEMMO_TITLE_PREFIX_PRIORITY) {
+                        user.data().remove(node);
+                        break;
+                    }
+                }
+                // Thêm prefix mới (role + danh hiệu)
+                user.data().add(PrefixNode.builder()
+                        .prefix(prefixFinal)
+                        .priority(ROLEMMO_TITLE_PREFIX_PRIORITY)
+                        .build());
+                api.getUserManager().saveUser(user);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to set title prefix for " + playerName + ": " + e.getMessage());
+            }
+        }).exceptionally(t -> {
+            plugin.getLogger().warning("Error setting title prefix: " + (t != null ? t.getMessage() : ""));
             return null;
         });
     }

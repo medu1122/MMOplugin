@@ -157,21 +157,34 @@ public class SkillItemListener implements Listener {
 
         // Kiểm tra item: ưu tiên item từ event, sau đó main hand, rồi off hand
         ItemStack item = event.getItem();
+        org.bukkit.inventory.EquipmentSlot hand = event.getHand();
         if (item == null || item.getType() == Material.AIR) {
             item = player.getInventory().getItemInMainHand();
+            hand = org.bukkit.inventory.EquipmentSlot.HAND;
         }
         if (item == null || item.getType() == Material.AIR) {
             item = player.getInventory().getItemInOffHand();
+            hand = org.bukkit.inventory.EquipmentSlot.OFF_HAND;
         }
         if (item == null || item.getType() == Material.AIR) {
             return;
+        }
+        if (hand == null) {
+            hand = org.bukkit.inventory.EquipmentSlot.HAND;
         }
 
         String skillId = SkillItemUtil.getSkillId(item);
         if (skillId == null || skillId.isEmpty()) {
             skillId = SkillItemUtil.getSkillIdFromLore(item, plugin.getSkillManager(), plugin.getRoleManager().getPlayerRole(player));
+            // Nếu có skill từ lore nhưng không có PDC → gắn lại PDC vào item (migrate)
+            if (skillId != null && !skillId.isEmpty()) {
+                SkillItemUtil.fixSkillItemPdc(player, item, skillId, hand);
+            }
         }
         if (skillId == null || skillId.isEmpty()) {
+            if (SkillItemUtil.looksLikeSkillItem(item)) {
+                me.skibidi.rolemmo.util.MessageUtil.sendActionBar(player, "§cGiữ skill item trong tay, chuột phải để dùng. Không được thì mở §e/role §7→ Skill để nhận lại.");
+            }
             return;
         }
 

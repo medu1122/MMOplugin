@@ -222,6 +222,7 @@ public class TitleManager {
         if (title == null) {
             try {
                 titleRepository.removeActiveTitle(player.getUniqueId());
+                updateLuckPermsTitlePrefix(player, null);
                 if (player.isOnline()) {
                     player.sendMessage("§aĐã gỡ danh hiệu active!");
                 }
@@ -243,6 +244,7 @@ public class TitleManager {
 
             // Set active title
             titleRepository.setActiveTitle(player.getUniqueId(), title.getId());
+            updateLuckPermsTitlePrefix(player, title);
             if (player.isOnline()) {
                 player.sendMessage("§aĐã set danh hiệu active: " + title.getDisplayName());
             }
@@ -276,6 +278,19 @@ public class TitleManager {
         } catch (SQLException e) {
             logger.warning("Failed to get active title for player " + player.getName() + ": " + e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Cập nhật prefix LuckPerms = role + danh hiệu (để hiện trong chat/tab).
+     */
+    private void updateLuckPermsTitlePrefix(Player player, Title title) {
+        if (plugin.getRoleManager() == null) return;
+        me.skibidi.rolemmo.manager.LuckPermsManager lp = plugin.getRoleManager().getLuckPermsManager();
+        if (lp == null || !lp.isEnabled()) return;
+        Role role = plugin.getRoleManager().getPlayerRole(player);
+        if (role != null) {
+            lp.setPlayerRoleTitlePrefix(player, role, title);
         }
     }
 
